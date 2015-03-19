@@ -1,0 +1,7 @@
+UMCP is a set of Python programs used to calculate connectivity metrics from a variety of neuroimaging modalities including diffusion weighted MRI (DTI/DSI), fMRI, and structural MRI.
+
+Wiki - http://www.ccn.ucla.edu/wiki/index.php/UCLA_Multimodal_Connectivity_Package
+
+Please note that this code lives in perpetual beta. tracks, timeseries, and core functions are well tested and stable. plot_network functions are more experimental and/or catered for specific purposes.
+
+For questions contact Jesse Brown, jbrown@memory.ucsf.edu
