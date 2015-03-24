@@ -1,8 +1,10 @@
 UMCP is a set of Python programs used to calculate connectivity metrics from a variety of neuroimaging modalities including diffusion weighted MRI (DTI/DSI), fMRI, and structural MRI.
 
-Please note that this code lives in perpetual beta. "tracks" and "timeseries" are relatively well tested. "core" functions are a mix of supportive functions and hodgepodge functions of use to the original author. "plot_network" functions are more experimental and/or catered for specific purposes.
+If you use this code in your research, please include the link to the github repository as a reference: https://github.com/jbrown81/umcp
 
-For questions contact Jesse Brown, jbrown@memory.ucsf.edu
+Please note that this code lives in perpetual beta. Users are encouraged to use their eyes and common sense to assess various output connectivity metrics for validity. "tracks" and "timeseries" functions are relatively well tested. "core" functions are a mix of supportive functions and hodgepodge functions of use to the original author. "plot_network" functions are useful for creating network visualizations but more experimental and/or catered for specific purposes.
+
+For questions contact Jesse Brown, jesse.brown@ucsf.edu
 
 Example usage:
 1) to get a functional connectivity matrix, given:
