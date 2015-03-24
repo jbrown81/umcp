@@ -21,6 +21,8 @@ import os
 import sys
 import numpy as np
 import nibabel as nib
+import re
+from commands import getoutput
 
 def get_nonzero_coords(nifti_file,thresh=0,value=0):    
     """
@@ -314,3 +316,85 @@ def participation_coefficient(G, weighted_edges=False):
     
     P = np.ones(n) - (Kc2/(Ko **2))
     return P
+
+def maxprob(coord):
+	"""
+	Given a x,y,z coordinate in MNI152 space, use FSL atlasquery to find maximum
+	probability region
+	"""
+	# this can be extended for any atlas that atlasquery uses, including Talairach Daemon
+	print coord
+	outs = []
+	cmd1 = 'atlasquery -a "Harvard-Oxford Cortical Structural Atlas" -c %s' %(coord, )
+	cmd2 = 'atlasquery -a "Harvard-Oxford Subcortical Structural Atlas" -c %s' %(coord, )
+	output1 = getoutput(cmd1)
+	output2 = getoutput(cmd2)
+	output1 = output1.split('br>')[1]
+	output2 = output2.split('br>')[1]
+	if output1 == 'No label found!':
+		pass
+		#outs.append('No label found!')
+	else:
+		rs = output1.split(', ')
+		o1 = re.split('( [0-9]*%[A-Za-z ]*)',output1)
+		o1 = [x.replace(',','') for x in o1 if '%' in x]
+		coord_x = float(coord.split(',')[0])
+		if coord_x > 0:
+			dir = 'Right '
+		else:
+			dir = 'Left '
+		rsp = re.split('(% )', o1[0])
+		o1_max = rsp[0] + rsp[1] + dir + rsp[2]
+		outs.append(o1_max)
+	if output2 == 'No label found!':
+		pass
+		#outs.append('No label found!')
+	else:
+		rs = output2.split(', ')
+		o2 = re.split('( [0-9]*%[A-Za-z ]*)',output2)
+		o2 = [x.replace(',','') for x in o2 if '%' in x]
+		for r in o2:
+			if (not 'Cerebral Cortex' in r) and (not 'Cerebral White Matter' in r):
+				outs.append(r)
+				break
+	if output1 == 'No label found!' and output2 == 'No label found!':
+		cmd3 = 'atlasquery -a "Cerebellar Atlas in MNI152 space after normalization with FLIRT" -c %s' %(coord, )
+		output3 = getoutput(cmd3)
+		output3 = output3.split('br>')[1]
+		if output3 == 'No label found!':
+			pass
+			#outs.append('No label found!')
+		else:
+			rs = output3.split(', ')
+			o3 = re.split('( [0-9]*%[A-Za-z ]*)',output3)
+			o3 = [x.replace(',','') for x in o3 if '%' in x]
+			outs.append(o3[0])
+	if not outs:
+		return 'No label found!'
+	else:
+		outs_ints = [int(x.split('%')[0]) for x in outs]
+		outs_ints_max = outs_ints.index(max(outs_ints))
+		outs_max = outs[outs_ints_max].split('% ')[1]
+	print outs
+	return outs_max
+
+def regions_file(centers_file, output_file):
+    centers = file_reader(centers_file)
+    region_names = []
+    for c in centers:
+			coord_str = ','.join(str(x) for x in c)
+			region_names.append(maxprob(coord_str))
+    f = open(output_file,'w')
+    for r in region_names:
+			f.write(r + '\n')
+    f.close()
+    
+def abbrevs_file(regions_file, output_file):
+	region_names = file_reader(regions_file, True)
+	abbrevs = []
+	for r in region_names:
+		abbrevs.append(''.join(x[0] for x in r.split()))
+	f = open(output_file,'w')
+	for n in abbrevs:
+		f.write(n + '\n')
+	f.close()
