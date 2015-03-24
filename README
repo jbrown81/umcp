@@ -1,7 +1,70 @@
 UMCP is a set of Python programs used to calculate connectivity metrics from a variety of neuroimaging modalities including diffusion weighted MRI (DTI/DSI), fMRI, and structural MRI.
 
-Wiki - http://www.ccn.ucla.edu/wiki/index.php/UCLA_Multimodal_Connectivity_Package
-
-Please note that this code lives in perpetual beta. tracks, timeseries, and core functions are well tested and stable. plot_network functions are more experimental and/or catered for specific purposes.
+Please note that this code lives in perpetual beta. "tracks" and "timeseries" are relatively well tested. "core" functions are a mix of supportive functions and hodgepodge functions of use to the original author. "plot_network" functions are more experimental and/or catered for specific purposes.
 
 For questions contact Jesse Brown, jbrown@memory.ucsf.edu
+
+Example usage:
+1) to get a functional connectivity matrix, given:
+- fMRI 4D data
+- a list of ROI .nii files, with the same dimensions + resolution as the fMRI data
+- optionally, a list of nuisance covariates (eg white matter, CSF timeseries, motion parameters)
+
+run_timeseries.py -f bold_4d.nii -m roi_list_21.txt -o fc_mat_21_covars -c --nuis=nuisance_regressors.txt
+
+Will output a 21x21 symmetric functional connectivity matrix as a space-delimited text file. For help, type:
+run_tracks.py --h
+Usage: run_timeseries.py -f <4d_nii_file> -m <input_masks_file> -o <output_prefix> [options]
+
+Options:
+  -h, --help            show this help message and exit
+  -f FUNCFILE, --func=FUNCFILE
+                        read 4D BOLD fMRI data from FILENAME.nii
+  -m MASKSFILE, --masks=MASKSFILE
+                        read mask filenames stored on separate lines in
+                        FILENAME.txt
+  -o OUTPUT, --out=OUTPUT
+                        output file prefix
+  -c, --corr            calculate correlation matrix between all masks
+  -p, --pcorr           calculate partial correlation matrix between all masks
+  -v, --cov             calculate covariance matrix between all masks
+  --scrub=SCRUBFILE     optional: include one column file with 1 for TRs to
+                        exclude, 0 for TRs to include
+  -n NUIS, --nuis=NUIS  covary for nuisance parameter timeseries in
+                        FILENAME.txt
+
+2) to get a structural connectivity matrix, given:
+- a Diffusion Toolkit/Trackvis .trk file with deterministic streamlines defined
+- a list of ROI .nii files, with the same dimensions + resolution as the diffusion data
+
+run_tracks.py -t tracks.trk -m masklist_21.txt -o sc_mat_21 -c -s
+
+Will output a 21x21 symmetric functional connectivity matrix as a space-delimited text file, along with corresponding 21x21 matrices for various statistics about all fibers connecting each pair of regions (average length, average curvature, etc.) For help, type:
+run_tracks.py --h
+Usage: run_tracks.py -t <input_tracks> -m <input_masks> -o <output_prefix> [options]
+
+Options:
+  -h, --help            show this help message and exit
+  -t TRACKSFILE, --tracks=TRACKSFILE
+                        read track data from Diffusion Toolkit FILENAME.trk or
+                        DSI Studio FILENAME.txt
+  -m MASKSFILE, --masks=MASKSFILE
+                        read mask filenames stored on separate lines in
+                        FILENAME.txt
+  -o OUTPUT, --out=OUTPUT
+                        output file prefix
+  -c, --cmat            calculate connectivity matrix between all masks
+  -d, --dens            calculate number (density) of tracks intersecting each
+                        mask
+  -s, --stats           calculate statistics for each track group
+  --statimg=STATIMAGE   optional: calculate average track group value for
+                        diffusion metric (FA, MD, ...) from .nii file
+  --cthrough            connectmat: any part of track must hit any part of
+                        mask
+  --dend                density: either endpoint of track must hit any part of
+                        mask
+  --maskthr=MASKTHRESH  optional: threshold value for probabilistic masks
+  --lenthr=LENTHRESH    optional: length threshold for tracks
+  --densnii             for density calculation, output .nii density file
+                        instead of mask hit counts in .txt file
+  --dsistudio           if .trk file was generated with dsi_studio
