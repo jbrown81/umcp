@@ -98,10 +98,14 @@ def get_header(track_file):
     f.close()
     return header_dict
 
-def mm_to_vox_convert(tracks,header):
+def mm_to_vox_convert(tracks,header,dsi_studio=False):
     """Convert track coordinates from mm dimensions to voxel dimensions"""
     xsize,ysize,zsize=np.array(header["vox_size"])
-    tracks_new = [[(int(x//xsize),int(y//ysize),int(z//zsize)) for x,y,z in track] for track in tracks]
+    if dsi_studio:
+        # hack for my 96x96x48 LPS oriented trk files created by dsi_studio
+        tracks_new = [[(int(x//xsize),int((240-y)//ysize),int(z//zsize)) for x,y,z in track] for track in tracks]
+    else:
+        tracks_new = [[(int(x//xsize),int(y//ysize),int(z//zsize)) for x,y,z in track] for track in tracks]
     return tracks_new
 
 def add_missing_vox(tracks):
@@ -193,11 +197,12 @@ def mask_tracks(tracks,header,masks,nonzero_thresh=0,through=1,write_nii=0,outpr
         np.savetxt('%s_density.txt'%outprefix,mask_density)
         return tracknums
     else:
-        outnifti = nib.Nifti1Image(vox_tracks_image, input.get_header().get_best_affine())
-        outnifti.to_filename(outnii_filename)
+        outnifti = nib.Nifti1Image(vox_tracks_img, np.eye(4))
+        outnifti.to_filename('%s_density.nii'%outprefix)
         return tracknums
 
-def mask_connectivity_matrix(tracks,header,masks,outfile,nonzero_thresh=0,through=0,tracks_mm=0,length_thresh=0):
+def mask_connectivity_matrix(tracks,header,masks,outfile,nonzero_thresh=0,through=0,tracks_mm=0,length_thresh=0,
+                             mask_matrix_file=None,write_tracks=False,write_tracks_filename=None,track_file=None):
     """
     Calculate the (symmetric) connectivity matrix for a set of tracks (from diffusion toolkit .trk file) and a
     set of masks
@@ -210,6 +215,9 @@ def mask_connectivity_matrix(tracks,header,masks,outfile,nonzero_thresh=0,throug
     tracknums=[[] for x in range(len(masks)*len(masks))]
     for mask in masks:
         masks_coords_list.append(set(core.get_nonzero_coords(mask,nonzero_thresh)))
+    if mask_matrix_file:
+        mask_matrix = core.file_reader(mask_matrix_file)
+        mask_matrix_array = np.array(mask_matrix)
     for tracknum,track in enumerate(tracks):
         if through == 0:
             cur_start=[]
@@ -234,8 +242,13 @@ def mask_connectivity_matrix(tracks,header,masks,outfile,nonzero_thresh=0,throug
             for x in cur_start:
                 for y in cur_end:
                     # allow for fiber to start/end in multiple (overlapping) masks
-                    connect_mat[x,y] += 1
-                    tracknums[(x*len(masks))+y].append(tracknum)
+                    if mask_matrix_file:
+                        if mask_matrix_array[x,y]:
+                            connect_mat[x,y] += 1
+                            tracknums[(x*len(masks))+y].append(tracknum)
+                    else:
+                       connect_mat[x,y] += 1
+                       tracknums[(x*len(masks))+y].append(tracknum)
         elif through == 1:
             cur=[]
             track_set=set(track)
@@ -248,11 +261,21 @@ def mask_connectivity_matrix(tracks,header,masks,outfile,nonzero_thresh=0,throug
                     else:
                         cur.append(count)
             for x,y in list(core.combinations(cur,2)):
-                connect_mat[x,y] += 1
-                tracknums[(x*len(masks))+y].append(tracknum)
+                if mask_matrix_file:
+                    if mask_matrix_array[x,y]:
+                        connect_mat[x,y] += 1
+                        tracknums[(x*len(masks))+y].append(tracknum)
+                else:
+                    connect_mat[x,y] += 1
+                    tracknums[(x*len(masks))+y].append(tracknum)
     connect_mat_sym = core.symmetrize_mat_sum(connect_mat)
     tracknums_sym = core.symmetrize_tracknum_list(tracknums)
     np.savetxt('%s_connectmat.txt'%outfile,connect_mat_sym)
+    if write_tracks:
+        tracknum_list = list(set([item for sublist in tracknums for item in sublist]))
+        tracknum_list_ordered = sorted(tracknum_list)
+        track_list = [tracks_mm[n] for n in tracknum_list_ordered]
+        make_floats(track_list,write_tracks_filename,track_file)
     return connect_mat_sym,tracknums_sym 
 
 def tracklength(track):
@@ -497,4 +520,33 @@ def mask_connectivity_matrix_dsi(tracks,masks,outfile,nonzero_thresh=0,through=0
     connect_mat_sym = core.symmetrize_mat_sum(connect_mat)
     tracknums_sym = core.symmetrize_tracknum_list(tracknums)
     np.savetxt('%s_connectmat.txt'%outfile,connect_mat_sym)
-    return connect_mat_sym,tracknums_sym 
+    return connect_mat_sym,tracknums_sym
+
+def make_floats(track_list,output_filename,input_trackfile):
+    """
+    Take a track list and generate a .trk (TrackVis) file
+    """
+    # can copy header from input file if input file exists
+    # should only need to change num_fibers
+    # no real point in generating full file from scratch at this point
+    f = open(input_trackfile, 'rb') # added 'rb' for Windows reading
+    contents = f.read()
+    f.close()
+    header = contents[0:1000]
+    
+    outfile = open(output_filename,'wb')
+    outfile.write(header[0:988])
+    
+    num_fibers = len(track_list)
+    num_fibers_packed = struct.pack('i',num_fibers)
+    outfile.write(num_fibers_packed)
+    outfile.write(header[992:1000])
+    
+    for track in track_list:
+        track_n_points = struct.pack('i',len(track))
+        outfile.write(track_n_points)
+        for point in track:
+            for coord in point:
+                cur_float = struct.pack('f',coord)
+                outfile.write(cur_float) # do i need to specify length or just append?
+    outfile.close()

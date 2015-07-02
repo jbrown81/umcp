@@ -19,17 +19,19 @@
 
 import numpy as np
 import scipy.stats
-from mayavi import mlab
+#from mayavi import mlab
 import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib.colors import colorConverter
 
 import core
-colors = {'c': (0.0, 0.75, 0.75), 'b': (0.0, 0.0, 1.0), 'w': (1.0, 1.0, 1.0), 'g': (0.0, 0.5, 0.0), 'y': (0.75, 0.75, 0), 'k': (0.0, 0.0, 0.0), 'r': (1.0, 0.0, 0.0), 'm': (0.75, 0, 0.75)}
+colors = {'c': (0.0, 0.75, 0.75), 'b': (0.0, 0.0, 1.0), 'w': (1.0, 1.0, 1.0), 'g': (0.0, 0.5, 0.0), 'y': (0.75, 0.75, 0), 'k': (0.0, 0.0, 0.0), 'r': (1.0, 0.0, 0.0), 'm': (0.75, 0, 0.75),
+    'gray': (0.5, 0.5, 0.5)}
 
 def plot_matrix(connectmat_file, centers_file, threshold_pct=5, weight_edges=False,
                 node_scale_factor=2, edge_radius=.5, resolution=8, name_scale_factor=1,
-                names_file=None, node_indiv_colors=[], highlight_nodes=[], fliplr=False):
+                names_file=None, node_indiv_colors=[], highlight_nodes=[], fliplr=False,
+                edge_opacity=1):
     """
     Given a connectivity matrix and a (x,y,z) centers file for each region, plot the 3D network
     """
@@ -49,12 +51,17 @@ def plot_matrix(connectmat_file, centers_file, threshold_pct=5, weight_edges=Fal
     ma_thresh = ma*(ma > thresh)
     
     if highlight_nodes:
+        ma_thresh_orig = ma_thresh
         nr = ma.shape[0]
         subset_mat = np.zeros((nr, nr))
         for i in highlight_nodes:
             subset_mat[i,:] = 1
             subset_mat[:,i] = 1
-        ma_thresh = ma_thresh * subset_mat
+        #ma_thresh = ma_thresh * subset_mat
+        # temporary hack; leaves edges from highlighted nodes unthresholded
+        ma_thresh = ma * subset_mat
+        non_subset_mat = abs(1-subset_mat)
+        ma_thresh_non_highlight = ma_thresh_orig * non_subset_mat
         
     if fliplr:
         new_nodes = []
@@ -63,30 +70,90 @@ def plot_matrix(connectmat_file, centers_file, threshold_pct=5, weight_edges=Fal
         nodes = new_nodes
     
     mlab.figure(bgcolor=(1, 1, 1), size=(400, 400))
+    a = [44]
+    b = [7, 153, 115]
+    #a = [7]
+    #b = [44, 153, 115]
+    #a = [153, 31]
+    #b = [44, 7, 40]
+    #a = [115, 40, 71]
+    #b = [44, 7, 153, 69]
     for count,(x,y,z) in enumerate(nodes):
-        if node_indiv_colors:
-            mlab.points3d(x,y,z, color=colors[node_indiv_colors[count]], scale_factor=node_scale_factor, resolution=resolution)
+        if highlight_nodes:
+            if count in highlight_nodes:
+                if node_indiv_colors:
+                    if count in a:
+                        mlab.points3d(x,y,z, color=colors[node_indiv_colors[count]], scale_factor=3, resolution=resolution)
+                    else:
+                        mlab.points3d(x,y,z, color=colors[node_indiv_colors[count]], scale_factor=node_scale_factor, resolution=resolution)
+                else:
+                    mlab.points3d(x,y,z, color=(0,1,0), scale_factor=node_scale_factor, resolution=resolution)
+            else:
+                if node_indiv_colors:
+                    if count in b:
+                        mlab.points3d(x,y,z, color=colors[node_indiv_colors[count]], scale_factor=3, resolution=resolution,opacity=.5)
+                    else:
+                        mlab.points3d(x,y,z, color=colors[node_indiv_colors[count]], scale_factor=node_scale_factor, resolution=resolution,opacity=.1)
+                else:
+                    mlab.points3d(x,y,z, color=(0,1,0), scale_factor=node_scale_factor, resolution=resolution,opacity=.1)
         else:
-            mlab.points3d(x,y,z, color=(0,1,0), scale_factor=node_scale_factor, resolution=resolution)
+            if node_indiv_colors:
+                mlab.points3d(x,y,z, color=colors[node_indiv_colors[count]], scale_factor=node_scale_factor, resolution=resolution)
+            else:
+                mlab.points3d(x,y,z, color=(0,1,0), scale_factor=node_scale_factor, resolution=resolution)
         if names_file:
             width = .025*name_scale_factor*len(names[count])
-            print width
-            print names[count]
-            mlab.text(x, y,names[count], z=z,width=.025*len(names[count]),color=(0,0,0))
-    for i in range(num_nodes-1):    
+            mlab.text(x, y,names[count], z=z,width=width,color=(0,0,0))
+    # TEMPORARY
+    #a = [96, 43, 58, 44]
+    #b = [158, 69, 153, 138]
+    #a = [7, 44, 114, 71]
+    #b = [191, 138, 153, 170]
+    a = [-1, -1, -1, -1]
+    b = [-1, -1, -1, -1]
+    for i in range(num_nodes):
         x0,y0,z0 = nodes[i]
         for j in range(i+1, num_nodes):
+            x1,y1,z1 = nodes[j]
             #if matrix[i][j] > edge_thresh:
-            if ma_thresh[i][j] > edge_thresh:
-                x1,y1,z1 = nodes[j]
+            #if (len(highlight_nodes) > 0) & (ma_thresh[i][j] > edge_thresh):
+            if (len(highlight_nodes) > 0) & (ma_thresh[i][j] > 0):
+            #if (len(highlight_nodes) > 0) & ((i in highlight_nodes) or (j in highlight_nodes)): # temporary hack, part 2
+                draw_edge = True
+                edge_color = (1,1,1) # draw edges to highlight nodes white
+                edge_opacity = 1
+            elif (len(highlight_nodes) > 0) & (ma_thresh_non_highlight[i][j] > edge_thresh):
+                draw_edge = True
+                edge_color = (0,0,0) # draw edges to non-highlight nodes gray
+                edge_opacity = .5
+            elif matrix[i][j] > edge_thresh:
+                draw_edge = True
+            elif (i==a[0]) & (j==b[0]):
+                draw_edge = True
+            elif (i==a[1]) & (j==b[1]):
+                draw_edge = True
+            elif (i==a[2]) & (j==b[2]):
+                draw_edge = True
+            elif (i==a[3]) & (j==b[3]):
+                draw_edge = True
+            else:
+                draw_edge = False
+            if draw_edge:
                 if weight_edges:
-                    mlab.plot3d([x0,x1], [y0,y1], [z0,z1],
-                            tube_radius=matrix[i][j]/matrix_flat.max(),
-                            color=(1,1,1))
+                    if (i==a[0]) & (j==b[0]): # TEMPORARY
+                        mlab.plot3d([x0,x1], [y0,y1], [z0,z1],tube_radius=matrix[i][j]/matrix_flat.max(),color=(0,1,1),tube_sides=24)
+                    elif (i==a[1]) & (j==b[1]):
+                        mlab.plot3d([x0,x1], [y0,y1], [z0,z1],tube_radius=matrix[i][j]/matrix_flat.max(),color=(0,0,1),tube_sides=24)
+                    elif (i==a[2]) & (j==b[2]):
+                        mlab.plot3d([x0,x1], [y0,y1], [z0,z1],tube_radius=matrix[i][j]/matrix_flat.max(),color=(0,1,0),tube_sides=24)
+                    elif (i==a[3]) & (j==b[3]):
+                        mlab.plot3d([x0,x1], [y0,y1], [z0,z1],tube_radius=matrix[i][j]/matrix_flat.max(),color=(1,0,0),tube_sides=24)
+                    #else:
+                    #    mlab.plot3d([x0,x1], [y0,y1], [z0,z1],tube_radius=matrix[i][j]/matrix_flat.max(),color=(1,1,1),tube_sides=24)
+                    else:
+                        mlab.plot3d([x0,x1], [y0,y1], [z0,z1],tube_radius=matrix[i][j]/matrix_flat.max(),color=edge_color,tube_sides=24,opacity=edge_opacity)
                 else:
-                    mlab.plot3d([x0,x1], [y0,y1], [z0,z1],
-                            tube_radius=edge_radius,
-                            color=(1,1,1))
+                    mlab.plot3d([x0,x1], [y0,y1], [z0,z1],tube_radius=edge_radius,color=(1,1,1),tube_sides=24)
 
 def plot_matrix_metric(connectmat_file,centers_file,threshold_pct,grp_metrics=None,node_metric='bc',
                        weight_edges=0,node_scale_factor=2,edge_radius=.5,resolution=8,name_scale_factor=1,names_file=0,
@@ -134,9 +201,9 @@ def plot_matrix_metric(connectmat_file,centers_file,threshold_pct,grp_metrics=No
         if names_file:
             mlab.text(x, y,names[count], z=z,width=.02*name_scale_factor*len(names[count]),color=(0,0,0))
     
-    for i in range(num_nodes-1):    
+    for i in range(num_nodes-2):    
         x0,y0,z0=nodes[i]
-        for j in range(i+1, num_nodes):
+        for j in range(i+1, num_nodes-1):
             if matrix[i][j] > edge_thresh:
                 x1,y1,z1=nodes[j]
                 if weight_edges:
@@ -601,6 +668,261 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
     and python list of strings specifying color for each node,
     use networkx and matplotlib to generate 2d spring-embedded plot
     """
+    alpha = .2
+    edge_interval_pct = 10
+    m = core.file_reader(connectmat_file)
+    ma = np.array(m)
+    if threshold_pct:
+        thresh = scipy.stats.scoreatpercentile(ma.ravel(),100-threshold_pct)
+        ma_thresh = ma*(ma > thresh)
+    else:
+        ma_thresh = ma
+    ma_bin = 1*(ma_thresh != 0)
+    if binarize:
+        ma_thresh = 1*(ma_thresh != 0)
+    cmat_thresh = ma_thresh
+    G = nx.Graph(ma_thresh)
+    
+    partition_list = core.file_reader(comm_index_file)
+    partition = {}
+    for count,i in enumerate(partition_list):
+        partition[count] = i[0]
+
+    if names_file:
+        names = core.file_reader(names_file,1)
+        names_dict={}
+        for i in range(len(names)):
+            names_dict[i] = names[i]
+    else:
+        names_dict={}
+        for i in range(ma.shape[0]):
+            names_dict[i] = ''
+    
+    size = float(len(set(partition.values())))
+    pos = nx.spring_layout(G, fixed=[0], iterations=5000)
+
+    #module_colors = [0]*len(names_dict)
+    #count = 0.
+    #for com in set(partition.values()) :
+    #    count = count + 1.
+    #    list_nodes = [nodes for nodes in partition.keys()
+    #                                if partition[nodes] == com]
+    #rgb = matplotlib.cm.jet(norm(fracs[count-1]))[0:3]
+    #rgb_255 = tuple([int(a*255) for a in rgb])
+    #hex = '#%02x%02x%02x' % tuple(rgb_255)
+    #for node in list_nodes:
+    #    module_colors[node] = hex
+
+    module_colors = []
+    for c in node_indiv_colors:
+        if isinstance(c, tuple):
+            module_colors.append(c)
+        else:
+            rgb = colors[c]
+            module_colors.append(reg)
+
+    #module_colors = [colors[node] for node in node_indiv_colors]
+    count = 0.
+    for com in set(partition.values()) :
+        count = count + 1.
+        list_nodes = [nodes for nodes in partition.keys() if partition[nodes] == com]
+        cur_mod_colors = [module_colors[node] for node in list_nodes]
+        nx.draw_networkx_nodes(G, pos, list_nodes, node_size = 1200,
+                               node_color = cur_mod_colors)
+    
+    if weight_edges:
+        edges = []
+        nonzero_edges = cmat_thresh[np.nonzero(cmat_thresh)] # all nonzero edges
+        percentiles = [core.my_scoreatpercentile(nonzero_edges, 100-x) for x in range(0,101,edge_interval_pct)]
+        for i in range(len(percentiles)-1):
+            alpha_val = .1 + (i / 20.0) # edges in first percentile have alpha=0
+            thresh_low = percentiles[i]
+            thresh_high = percentiles[i+1]
+            edges.append([(u,v) for (u,v,d) in G.edges(data=True) if thresh_low <= d['weight'] <= thresh_high])
+            nx.draw_networkx_edges(G,pos,edgelist=edges[i],width=i/1.9,alpha=alpha_val,edge_color='k')
+    else:
+        nx.draw_networkx_edges(G, pos, width=1, alpha=alpha)
+        
+    if names_file:
+        nx.draw_networkx_labels(G, pos, labels=names_dict, font_size=10)
+    plt.autoscale(tight=True)
+    plt.axis('off')
+    plt.show(block=False)
+    
+def plot_tracks(trk_file):
+    """
+    Plot streamlines from a DSI Studio .txt tracks file
+    """
+    trks = core.file_reader(trk_file)
+    ta = np.array(trks)
+    for t in ta:
+        tl = len(t)
+        trs = np.reshape(t, (tl/3,3))
+        mlab.plot3d(trs[:,0], trs[:,1], trs[:,2])
+        
+def animation(delay=10, continuous=False, degree_step=2, save_movie=False):
+    # IN PROGRESS
+    from mayavi import mlab
+    @mlab.animate(delay=delay)
+    def anim():
+        f = mlab.gcf()
+        for count, i in enumerate(range(2,361,2)):
+        #while 1:
+            f.scene.camera.azimuth(degree_step)
+            f.scene.render()
+            mlab.savefig('/Users/jessebrown/Desktop/hp_paper/sc_movies/visual_sensory/img_%03d.png' %count)
+            yield
+    
+    a = anim() # Starts the animation.
+    if save_movie:
+        pass
+        #ffmpeg -y -i "r_hipp_network%03d.png" -b 5000k movie.mp4 # need to system call this
+        
+def plot_spring_temp(connectmat_file,comm_index_file,node_indiv_colors,
+                threshold_pct=2,binarize=False,weight_edges=False,names_file=None):
+    """
+    Given connectivity matrix,
+    a community index file (integer on each line specifying which module that node belongs to),
+    and python list of strings specifying color for each node,
+    use networkx and matplotlib to generate 2d spring-embedded plot
+    """
+    plt.figure(figsize=(10,10))
+    alpha = .5
+    edge_interval_pct = 10
+    m = core.file_reader(connectmat_file)
+    ma = np.array(m)
+    if threshold_pct:
+        thresh = scipy.stats.scoreatpercentile(ma.ravel(),100-threshold_pct)
+        ma_thresh = ma*(ma > thresh)
+    else:
+        ma_thresh = ma
+    ma_bin = 1*(ma_thresh != 0)
+    if binarize:
+        ma_thresh = 1*(ma_thresh != 0)
+    cmat_thresh = ma_thresh
+    G = nx.Graph(ma_thresh)
+    ma_thresh_inv = ma_thresh*-1
+    ma_thresh_inv = abs(np.min(ma_thresh_inv)) + ma_thresh_inv + .01
+    Ginv = nx.Graph(ma_thresh_inv)
+    GT = nx.minimum_spanning_tree(Ginv)
+    
+    partition_list = core.file_reader(comm_index_file)
+    partition = {}
+    for count,i in enumerate(partition_list):
+        partition[count] = i[0]
+    
+    if names_file:
+        names = core.file_reader(names_file,1)
+        names_dict={}
+        for i in range(len(names)):
+            names_dict[i] = names[i]
+    else:
+        names_dict={}
+        for i in range(ma.shape[0]):
+            names_dict[i] = ''
+    
+    size = float(len(set(partition.values())))
+    #pos = nx.spring_layout(G, fixed=[0])
+    #pos = nx.graphviz_layout(G)
+    pos = nx.spring_layout(G, fixed=[0], iterations=500, weight='weight')
+
+    #module_colors = [0]*len(names_dict)
+    #count = 0.
+    #for com in set(partition.values()) :
+    #    count = count + 1.
+    #    list_nodes = [nodes for nodes in partition.keys()
+    #                                if partition[nodes] == com]
+    #rgb = matplotlib.cm.jet(norm(fracs[count-1]))[0:3]
+    #rgb_255 = tuple([int(a*255) for a in rgb])
+    #hex = '#%02x%02x%02x' % tuple(rgb_255)
+    #for node in list_nodes:
+    #    module_colors[node] = hex
+
+    # custom stuff for paper figure
+    node_radii=[0.8222, 1.5786, 1.0636, 0.6203, 0.8669, 1.3104, 0.6634, 0.6834, 1.7547, 1.3786, 1.0043, 1.0994, 2.2858, 1.5758, 0.8805, 1.0428, 0.7085, 1.0782, 0.5698, 2.3545, 1.2103, 2.4366, 1.1162, 0.6371, 1.8670, 1.1091, 0.6452, 1.3900, 0.9389, 0.7330, 1.1412, 1.6945, 1.7827, 1.5443, 1.0186, 0.6626, 1.2558, 1.5772, 1.6709, 0.8466, 1.1914, 0.4700, 1.1028, 3.2594, 0.9843, 1.2526, 1.1006, 1.3774, 1.5183, 1.3130, 0.8359, 1.7100, 0.2928, 0.9431, 2.0401, 0.6028, 1.3432, 0.7832, 0.8460, 0.7600, 1.8520, 2.0281, 0.7029, 1.2516, 1.0987, 1.3291, 0.7454, 0.9952, 2.0355, 1.2345, 0.5693, 2.0749, 1.2937, 1.3141, 0.8848, 1.2545, 1.5034, 0.9661, 1.7521, 0.9246, 1.9575, 0.9228, 0.7070, 0.9341, 1.8242, 1.1563, 2.7775, 0.6661, 2.6090, 0.4317, 1.3109, 1.2605, 1.1295, 0.9306, 0.6841, 1.1451, 0.7030, 1.2644, 0.7006, 1.9352, 0.5893, 2.0067, 1.3939, 0.8285, 0.8487, 1.2998, 1.3576, 0.4287, 1.7225, 1.3086, 1.2634, 0.4086, 1.6697, 1.1250, 1.6418, 0.8931, 1.4823, 1.0391, 0.6193, 1.0683, 1.1989, 0.7133, 1.4151, 2.2867, 0.5839, 0.7413, 0.8973, 0.9189, 1.1543, 1.5607, 0.2917, 1.7677, 1.2686, 0.5147, 1.7781, 1.2135, 1.0715, 1.7597, 2.7336, 2.6973, 0.4867, 1.5992, 0.8676, 1.4289, 1.3803, 1.3965, 1.8593, 1.1243, 0.7263, 0.9734, 1.0316, 1.4781, 1.7252, 1.9483, 1.3133, 1.2333, 1.5510, 1.6935, 1.0918, 0.6934, 1.2007, 0.7220, 0.7605, 2.1344, 0.7081, 0.7725, 0.5166, 2.3777, 1.0416, 0.5059, 4.0000, 1.0035, 1.2381, 0.4716, 1.1746, 0.5847, 1.7910, 1.0610, 0.5510, 0.9609, 1.5484, 1.0130, 3.0326, 2.5102, 1.0070, 0.6652, 1.7357, 1.8835, 1.5802, 2.7942, 1.3260, 0.6095, 0, 0.8365, 0.8901, 0.5213, 1.4189, 2.0472, 1.0217]
+    top_nodes=[102, 62, 69, 55, 198, 72, 164, 13, 124, 20, 168, 22, 184, 89, 140, 139, 87, 190, 183, 44, 171]
+    top_nodes = [n-1 for n in top_nodes]
+
+    module_colors = [colors[node] for node in node_indiv_colors]
+    count = 0.
+    for com in set(partition.values()) :
+        count = count + 1.
+        list_nodes = [nodes for nodes in partition.keys() if partition[nodes] == com]
+
+        cur_mod_colors = [module_colors[node] for node in list_nodes]
+        list_nodes_a = [node for node in list_nodes if node in top_nodes]
+        list_nodes_b = [node for node in list_nodes if node not in top_nodes]
+
+        nx.draw_networkx_nodes(G, pos, list_nodes_a, node_size = 200, node_color = cur_mod_colors, alpha=1)
+        #nx.draw_networkx_nodes(G, pos, list_nodes, node_size = (node_radii[int(count)]+1)*100, node_color = cur_mod_colors)
+        nx.draw_networkx_nodes(G, pos, list_nodes_b, node_size = 200, node_color = cur_mod_colors, alpha=.2)
+    
+    top_nodes_array = np.array(top_nodes)
+    out_nodes = [node for node in range(199) if node not in top_nodes]
+    
+    # zero out edges from other nodes
+    #ma1 = np.zeros((199,199))
+    #ma1[top_nodes,top_nodes] = ma[top_nodes,top_nodes]
+    #ma1[top_nodes,:] = ma[top_nodes,:]
+    #ma1[:,top_nodes] = ma[:,top_nodes]
+    #ma = ma1
+    
+    #threshold_pct=100
+    #thresh = scipy.stats.scoreatpercentile(ma.ravel(),100-threshold_pct)
+    #ma_thresh = ma*(ma > thresh)
+    #G = nx.Graph(ma_thresh)
+    weight_edges=False
+    
+    if weight_edges:
+        edges = []
+        nonzero_edges = cmat_thresh[np.nonzero(cmat_thresh)] # all nonzero edges
+        percentiles = [core.my_scoreatpercentile(nonzero_edges, 100-x) for x in range(0,101,edge_interval_pct)]
+        for i in range(len(percentiles)-1):
+            alpha_val = .1 + (i / 20.0) # edges in first percentile have alpha=0
+            #alpha_val = .1 + (i / 200.0) # edges in first percentile have alpha=0
+            thresh_low = percentiles[i]
+            thresh_high = percentiles[i+1]
+            edges.append([(u,v) for (u,v,d) in G.edges(data=True) if thresh_low <= d['weight'] <= thresh_high])
+            #nx.draw_networkx_edges(G,pos,edgelist=edges[i],width=i/1.9,alpha=alpha_val,edge_color='k')
+            nx.draw_networkx_edges(G,pos,edgelist=edges[i],width=i/4.9,alpha=alpha_val,edge_color='k')
+    else:
+        tree = True
+        if tree:
+            tree_a = nx.to_numpy_matrix(GT)
+            tree_a_bin = (tree_a > 0) * 1
+            top_nodes_mat = np.zeros((199,199))
+            top_nodes_mat[top_nodes,:] = ma_thresh[top_nodes,:]
+            top_nodes_mat[:,top_nodes] = ma_thresh[:,top_nodes]
+            top_nodes_mat_tree = np.multiply(top_nodes_mat, tree_a_bin) # maybe binarize this
+            GT_top = nx.Graph(top_nodes_mat_tree)
+            out_nodes_mat = np.zeros((199,199))
+            out_nodes_mat[out_nodes,:] = ma_thresh[out_nodes,:]
+            out_nodes_mat[:,out_nodes] = ma_thresh[:,out_nodes]
+            out_nodes_mat_tree = np.multiply(top_nodes_mat, tree_a_bin) # maybe binarize this
+            GT_out = nx.Graph(out_nodes_mat_tree)
+            
+            nx.draw_networkx_edges(GT, pos, width=.3, alpha=alpha)
+            nx.draw_networkx_edges(GT_top, pos, width=.8, alpha=1)
+            #nx.draw_networkx_edges(GT_out, pos, width=.3, alpha=alpha)
+        else:
+            nx.draw_networkx_edges(G, pos, width=.3, alpha=alpha)
+        
+    if names_file:
+        nx.draw_networkx_labels(G, pos, labels=names_dict, font_size=10)
+    
+    plt.autoscale(tight=True)
+    #plt.show(block=False)
+    plt.savefig('/Users/jessebrown/Desktop/test.pdf', dpi=300, format='pdf')
+    return(tree_a_bin,top_nodes_mat_tree,out_nodes_mat_tree)
+    
+def plot_spring_psp(connectmat_file,comm_index_file,node_indiv_colors,
+                threshold_pct=2,binarize=False,weight_edges=False,names_file=None):
+    """
+    Given connectivity matrix,
+    a community index file (integer on each line specifying which module that node belongs to),
+    and python list of strings specifying color for each node,
+    use networkx and matplotlib to generate 2d spring-embedded plot
+    """
     alpha = .5
     edge_interval_pct = 10
     m = core.file_reader(connectmat_file)
@@ -632,7 +954,7 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
             names_dict[i] = ''
     
     size = float(len(set(partition.values())))
-    pos = nx.spring_layout(G, fixed=[0])
+    pos = nx.spring_layout(G, fixed=[0], iterations=500)
 
     #module_colors = [0]*len(names_dict)
     #count = 0.
@@ -653,7 +975,7 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
         list_nodes = [nodes for nodes in partition.keys() if partition[nodes] == com]
         cur_mod_colors = [module_colors[node] for node in list_nodes]
         nx.draw_networkx_nodes(G, pos, list_nodes, node_size = 200,
-                               node_color = cur_mod_colors)
+                               node_color = cur_mod_colors, alpha=.5)
     
     if weight_edges:
         edges = []
@@ -671,32 +993,4 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
     if names_file:
         nx.draw_networkx_labels(G, pos, labels=names_dict, font_size=10)
     plt.autoscale(tight=True)
-    
-def plot_tracks(trk_file):
-    """
-    Plot streamlines from a DSI Studio .txt tracks file
-    """
-    trks = core.file_reader(trk_file)
-    ta = np.array(trks)
-    for t in ta:
-        tl = len(t)
-        trs = np.reshape(t, (tl/3,3))
-        mlab.plot3d(trs[:,0], trs[:,1], trs[:,2])
-        
-def animation(delay=50, continuous=False, degree_step=2, save_movie=False):
-    # IN PROGRESS
-    from mayavi import mlab
-    @mlab.animate(delay=delay)
-    def anim():
-        f = mlab.gcf()
-        for count, i in enumerate(range(2,361,2)):
-        #while 1:
-            f.scene.camera.azimuth(degree_step)
-            f.scene.render()
-            mlab.savefig('/Users/jessebrown/Desktop/mayavi_figs/r_hipp_network%03d.png' %count)
-            yield
-    
-    a = anim() # Starts the animation.
-    if save_movie:
-        pass
-        #ffmpeg -y -i "r_hipp_network%03d.png" -b 5000k movie.mp4 # need to system call this
+    plt.show(block=False)

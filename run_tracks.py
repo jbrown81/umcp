@@ -51,18 +51,27 @@ def main():
                       help="optional: length threshold for tracks")
     parser.add_option("--densnii", action="store_true", dest="densnii",
                       help="for density calculation, output .nii density file instead of mask hit counts in .txt file")
+    parser.add_option("--dsistudio", action="store_true", dest="dsistudio",
+                      help="if .trk file was generated with dsi_studio")
 
     (options, args) = parser.parse_args()
 
     start = time.time()
     filelog = open("%s_log.txt" % options.output, "w")
 
-    if options.tracksfile.split('.')[-1] == 'txt':
+    if options.dsistudio:
         diffusion_toolkit = False
         dsi_studio = True
     else:
         diffusion_toolkit = True
         dsi_studio = False
+        
+    #if options.tracksfile.split('.')[-1] == 'txt':
+    #    diffusion_toolkit = False
+    #    dsi_studio = True
+    #else:
+    #    diffusion_toolkit = True
+    #    dsi_studio = False
 
     if options.tracksfile:
         if diffusion_toolkit:
@@ -81,9 +90,24 @@ def main():
             filelog.write("tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)\n")
             tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)
         else:
-            print "tracks_list_vox_filled = tracks.get_tracks_dsi_studio(%s)" % options.tracksfile
-            filelog.write("tracks_list_vox_filled = tracks.get_tracks_dsi_studio(%s)\n" % options.tracksfile)
-            tracks_list_vox_filled = tracks.get_tracks_dsi_studio(options.tracksfile)
+            print "tracks_list_mm = tracks.get_floats('%s')" % options.tracksfile
+            filelog.write("tracks_list_mm = tracks.get_floats('%s')\n" % options.tracksfile)
+            tracks_list_mm = tracks.get_floats(options.tracksfile)
+            print "header = tracks.get_header('%s')" % options.tracksfile
+            filelog.write("header = tracks.get_header('%s')\n" % options.tracksfile)
+            header = tracks.get_header(options.tracksfile)
+            
+            # Convert coordinates from mm to voxel coordinates
+            print "tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header)"
+            filelog.write("tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header, dsi_studio=True)\n")
+            tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header, dsi_studio=True)
+            print "tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)"
+            filelog.write("tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)\n")
+            tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)
+            
+            #print "tracks_list_vox_filled = tracks.get_tracks_dsi_studio(%s)" % options.tracksfile
+            #filelog.write("tracks_list_vox_filled = tracks.get_tracks_dsi_studio(%s)\n" % options.tracksfile)
+            #tracks_list_vox_filled = tracks.get_tracks_dsi_studio(options.tracksfile)
     else:
         print "Must specify input .trk/.txt file"
     
@@ -118,20 +142,20 @@ def main():
     if options.connectmat:
         # Get connectivity matrix for all masks in list
         if options.lenthresh:
-            if dsi_studio:
-                print "outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list,'%s',%s,%s,tracks_list_mm,%s)" % (options.output, options.maskthresh, cthrough,options.lenthresh)
-                filelog.write("outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list,'%s',%s,%s,tracks_list_mm,%s)\n" % (options.output, options.maskthresh, cthrough,options.lenthresh))
-                outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list, options.output, options.maskthresh, cthrough,tracks_list_mm,options.lenthresh)
-            else:
+            #if dsi_studio:
+            #    print "outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list,'%s',%s,%s,tracks_list_mm,%s)" % (options.output, options.maskthresh, cthrough,options.lenthresh)
+            #    filelog.write("outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list,'%s',%s,%s,tracks_list_mm,%s)\n" % (options.output, options.maskthresh, cthrough,options.lenthresh))
+            #    outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list, options.output, options.maskthresh, cthrough,tracks_list_mm,options.lenthresh)
+            #else:
                 print "outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list,'%s',%s,%s,tracks_list_mm,%s)" % (options.output, options.maskthresh, cthrough,options.lenthresh)
                 filelog.write("outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list,'%s',%s,%s,tracks_list_mm,%s)\n" % (options.output, options.maskthresh, cthrough,options.lenthresh))
                 outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list, options.output, options.maskthresh, cthrough,tracks_list_mm,options.lenthresh)
         else:
-            if dsi_studio:
-                print "outmat,tracknums_mat=tracks.mask_connectivity_matrix_NEW(tracks_list_vox_filled,mask_list,'%s',%s,%s)" % (options.output, options.maskthresh, cthrough)
-                filelog.write("outmat,tracknums_mat=tracks.mask_connectivity_matrix_NEW(tracks_list_vox_filled,mask_list,'%s',%s,%s)\n" % (options.output, options.maskthresh, cthrough))
-                outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list, options.output, options.maskthresh, cthrough)                
-            else:
+            #if dsi_studio:
+            #    print "outmat,tracknums_mat=tracks.mask_connectivity_matrix_NEW(tracks_list_vox_filled,mask_list,'%s',%s,%s)" % (options.output, options.maskthresh, cthrough)
+            #    filelog.write("outmat,tracknums_mat=tracks.mask_connectivity_matrix_NEW(tracks_list_vox_filled,mask_list,'%s',%s,%s)\n" % (options.output, options.maskthresh, cthrough))
+            #    outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list, options.output, options.maskthresh, cthrough)                
+            #else:
                 print "outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list,'%s',%s,%s)" % (options.output, options.maskthresh, cthrough)
                 filelog.write("outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list,'%s',%s,%s)\n" % (options.output, options.maskthresh, cthrough))
                 outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list, options.output, options.maskthresh, cthrough)

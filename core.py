@@ -24,7 +24,7 @@ import nibabel as nib
 import re
 from commands import getoutput
 
-def get_nonzero_coords(nifti_file,thresh=0,value=0):    
+def get_nonzero_coords(nifti_file,thresh=0,value=0):
     """
     Given a .nii file name, return a list of all the coordinates with non-zero (or above threshold) values
     """
@@ -50,7 +50,7 @@ def get_nonzero_coords(nifti_file,thresh=0,value=0):
 def match_nifti_header(data, input_file):
     """
     Takes NiftiImage object and input file, updates NiftiImage header to match input file header
-    """ 
+    """
     img_to_match = nib.load(input_file)
     header_to_match = img_to_match.get_header()
     img_new = nib.Nifti1Image(data, header_to_match.get_best_affine(), header = img_to_match.get_header())
@@ -136,7 +136,7 @@ def prob_tensor(dyadfile, ffile, outname):
     and first eigenvalue is value from mean_f sample; tensor file can be input
     into Diffusion Toolkit for deterministic tractography
     This method was used in http://www.pnas.org/content/108/51/20760.long
-    """    
+    """
     dyad = nib.load(dyadfile)
     dyaddata = dyad.get_data()
     s1, s2, s3, s4 = dyaddata.shape
@@ -153,7 +153,7 @@ def prob_tensor(dyadfile, ffile, outname):
                 e2=e1/2 # random second eigenvalue, less than e1
                 e3=e2 # random third eigenvalue, less than e1
                 D=np.array([e1,0,0,0,e2,0,0,0,e3]).reshape(3,3)
-                
+
                 a,b,c=v1
                 x=np.random.rand(1)
                 y=np.random.rand(1)
@@ -163,11 +163,11 @@ def prob_tensor(dyadfile, ffile, outname):
                 v2=v2/np.linalg.norm(v2)
                 v3=np.cross(v1,v2) # random third eigenvector, perpendicular to v1
                 V=np.array([v1,v2,v3]).T
-                
+
                 tensor=np.matrix(V)*np.matrix(D)*np.matrix(V).T # tensor formula: S = V*D*V.T
                 tensor_vals=[tensor[0,0], tensor[0,1], tensor[1,1], tensor[0,2], tensor[1,2], tensor[2,2]]
                 tensor_img[:,dim3,dim2,dim1]=tensor_vals
-    
+
     outnifti = nib.Nifti1Image(tensor_img, dyad.get_header().get_best_affine())
     outnifti.to_filename(outname)
 
@@ -247,7 +247,7 @@ def euclidean_distance(coords):
     """
     numcoords = coords.shape[0]
     eucdistmat = np.zeros((numcoords, numcoords))
-    
+
     for i in range(numcoords):
         for j in range(numcoords):
             x = coords[i, :]
@@ -299,7 +299,7 @@ def participation_coefficient(G, weighted_edges=False):
     partition_list = []
     for count in range(len(partition)):
         partition_list.append(partition[count])
-    
+
     n = G.number_of_nodes()
     Ko = []
     for node in range(n):
@@ -313,7 +313,7 @@ def participation_coefficient(G, weighted_edges=False):
     Kc2 = np.zeros(n)
     for i in range(np.max(partition_list) + 1):
         Kc2 = Kc2 + (np.sum(G_mat_weighted * (Gc == i),1) ** 2)
-    
+
     P = np.ones(n) - (Kc2/(Ko **2))
     return P
 
@@ -388,13 +388,140 @@ def regions_file(centers_file, output_file):
     for r in region_names:
 			f.write(r + '\n')
     f.close()
-    
+
 def abbrevs_file(regions_file, output_file):
-	region_names = file_reader(regions_file, True)
-	abbrevs = []
-	for r in region_names:
-		abbrevs.append(''.join(x[0] for x in r.split()))
-	f = open(output_file,'w')
-	for n in abbrevs:
-		f.write(n + '\n')
-	f.close()
+    region_names = file_reader(regions_file, True)
+    abbrevs = []
+    harvox_region_names = {
+        'Brain-Stem': 'Bstm',
+        'Left Accumbens': 'LAcmb',
+        'Left Amygdala': 'LAmyg',
+        'Left Angular Gyrus': 'LAng',
+        'Left Caudate': 'LCdt',
+        'Left Central Opercular Cortex': 'LCOprc',
+        'Left Cingulate Gyrus anterior division': 'LACC',
+        'Left Cingulate Gyrus posterior division': 'LPCC',
+        'Left Crus I': 'LCrbC1',
+        'Left Crus II': 'LCrbC2',
+        'Left Cuneal Cortex': 'LCun',
+        'Left Frontal Medial Cortex': 'LMPFC',
+        'Left Frontal Orbital Cortex': 'LOFC',
+        'Left Frontal Pole': 'LFP',
+        "Left Heschl's Gyrus (includes H1 and H2)": 'LHes',
+        'Left Hippocampus': 'LHip',
+        'Left I-IV': 'LCrb14',
+        'Left IX': 'LCrb9',
+        'Left Inferior Frontal Gyrus pars opercularis': 'LIFGpo',
+        'Left Inferior Frontal Gyrus pars triangularis': 'LIFGpt',
+        'Left Inferior Temporal Gyrus anterior division': 'LITa',
+        'Left Inferior Temporal Gyrus posterior division': 'LITp',
+        'Left Inferior Temporal Gyrus temporooccipital part': 'LITto',
+        'Left Insular Cortex': 'LIns',
+        'Left Juxtapositional Lobule Cortex (formerly Supplementary Motor Cortex)': 'LSMA',
+        'Left Lateral Occipital Cortex inferior division': 'LLOcci',
+        'Left Lateral Occipital Cortex superior division': 'LLOccs',
+        'Left Lingual Gyrus': 'LLing',
+        'Left Middle Frontal Gyrus': 'LMFG',
+        'Left Middle Temporal Gyrus anterior division': 'LMTa',
+        'Left Middle Temporal Gyrus posterior division': 'LMTp',
+        'Left Middle Temporal Gyrus temporooccipital part': 'LMTto',
+        'Left Occipital Fusiform Gyrus': 'LOFus',
+        'Left Occipital Pole': 'LOP',
+        'Left Pallidum': 'LGP',
+        'Left Paracingulate Gyrus': 'LPCing',
+        'Left Parahippocampal Gyrus anterior division': 'LPHGa',
+        'Left Parahippocampal Gyrus posterior division': 'LPHGp',
+        'Left Parietal Operculum Cortex': 'LPOprc',
+        'Left Planum Polare': 'LPlPol',
+        'Left Planum Temporale': 'LPlTem',
+        'Left Postcentral Gyrus': 'LPreCG',
+        'Left Precentral Gyrus': 'LPosCG',
+        'Left Precuneous Cortex': 'LPcun',
+        'Left Subcallosal Cortex': 'LSbcal',
+        'Left Superior Frontal Gyrus': 'LSFG',
+        'Left Superior Parietal Lobule': 'LSPL',
+        'Left Superior Temporal Gyrus anterior division': 'LSTa',
+        'Left Superior Temporal Gyrus posterior division': 'LSTp',
+        'Left Supramarginal Gyrus anterior division': 'LSMGa',
+        'Left Supramarginal Gyrus posterior division': 'LSMGp',
+        'Left Temporal Fusiform Cortex anterior division': 'LTFusa',
+        'Left Temporal Fusiform Cortex posterior division': 'LTFusp',
+        'Left Temporal Occipital Fusiform Cortex': 'LTOFus',
+        'Left Temporal Pole': 'LTP',
+        'Left Thalamus': 'LTh',
+        'Left V': 'LCrb5',
+        'Left VI': 'LCrb6',
+        'Left VIIIb': 'LCrb8b',
+        'Left VIIb': 'LCrb7b',
+        'No label found!': 'N/A',
+        'Right Accumbens': 'RAcmb',
+        'Right Amygdala': 'RAmyg',
+        'Right Angular Gyrus': 'RAng',
+        'Right Caudate': 'RCdt',
+        'Right Central Opercular Cortex': 'RCOprc',
+        'Right Cingulate Gyrus anterior division': 'RACC',
+        'Right Cingulate Gyrus posterior division': 'RPCC',
+        'Right Crus I': 'RCrbC1',
+        'Right Crus II': 'RCrbC2',
+        'Right Cuneal Cortex': 'RCun',
+        'Right Frontal Operculum Cortex': 'RFOprc',
+        'Right Frontal Orbital Cortex': 'ROFC',
+        'Right Frontal Pole': 'RFP',
+        "Right Heschl's Gyrus (includes H1 and H2)": 'RHes',
+        'Right Hippocampus': 'RHip',
+        'Right IX': 'RCrb9',
+        'Right Inferior Frontal Gyrus pars opercularis': 'RIFGpo',
+        'Right Inferior Temporal Gyrus anterior division': 'RITa',
+        'Right Inferior Temporal Gyrus posterior division': 'RITp',
+        'Right Inferior Temporal Gyrus temporooccipital part': 'RITto',
+        'Right Insular Cortex': 'RIns',
+        'Right Intracalcarine Cortex': 'RCalc',
+        'Right Juxtapositional Lobule Cortex (formerly Supplementary Motor Cortex)': 'RSMA',
+        'Right Lateral Occipital Cortex inferior division': 'RLOcci',
+        'Right Lateral Occipital Cortex superior division': 'RLOccs',
+        'Right Lingual Gyrus': 'RLing',
+        'Right Middle Frontal Gyrus': 'RMFG',
+        'Right Middle Temporal Gyrus anterior division': 'RMTa',
+        'Right Middle Temporal Gyrus posterior division': 'RMTp',
+        'Right Middle Temporal Gyrus temporooccipital part': 'RMTto',
+        'Right Occipital Fusiform Gyrus': 'ROFus',
+        'Right Occipital Pole': 'ROP',
+        'Right Pallidum': 'RGP',
+        'Right Paracingulate Gyrus': 'RPCing',
+        'Right Parahippocampal Gyrus anterior division': 'RPHGa',
+        'Right Parahippocampal Gyrus posterior division': 'RPHGp',
+        'Right Planum Polare': 'RPlPol',
+        'Right Planum Temporale': 'RPlTem',
+        'Right Postcentral Gyrus': 'RPosCG',
+        'Right Precentral Gyrus': 'RPreCG',
+        'Right Precuneous Cortex': 'RPcun',
+        'Right Putamen': 'RPut',
+        'Right Subcallosal Cortex': 'RSbcal',
+        'Right Superior Frontal Gyrus': 'RSFG',
+        'Right Superior Parietal Lobule': 'RSPL',
+        'Right Superior Temporal Gyrus anterior division': 'RSTa',
+        'Right Superior Temporal Gyrus posterior division': 'RSTp',
+        'Right Supramarginal Gyrus anterior division': 'RSMGa',
+        'Right Supramarginal Gyrus posterior division': 'RSMGp',
+        'Right Temporal Fusiform Cortex anterior division': 'RTFusa',
+        'Right Temporal Fusiform Cortex posterior division': 'RTFusp',
+        'Right Temporal Occipital Fusiform Cortex': 'RTOFus',
+        'Right Temporal Pole': 'RTP',
+        'Right Thalamus': 'RTh',
+        'Right V': 'RCrb5',
+        'Right VI': 'RCrb6',
+        'Right VIIIa': 'RCrb8a',
+        'Right VIIIb': 'RCrb8b',
+        'Right VIIb': 'RCrb7b',
+        'Right X': 'RCrb10',
+        'Vermis VIIIa': 'CrbVrm',
+    }
+    for r in region_names:
+        if r in harvox_region_names:
+            abbrevs.append(harvox_region_names[r])
+        else:
+            abbrevs.append(''.join(x[0] for x in r.split()))
+    f = open(output_file,'w')
+    for n in abbrevs:
+        f.write(n + '\n')
+    f.close()

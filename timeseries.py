@@ -116,7 +116,7 @@ def mask_mutualinfo_matrix(nifti_file,masks,outfile,mask_thresh=0,nbins=10):
 
 def mask_funcconnec_matrix(nifti_file,masks_files,outfile=None,masks_threshes = [],
                            multi_labels=[],partial=False,cov=False,zero_diag=True,
-                           scrub_trs_file=None,pca=False,ts_outfile=None):
+                           scrub_trs_file=None,pca=False,ts_outfile=None,covariate_ts_file=None):
     """
     Calculates correlation/covariance matrix for a set of mask mean timeseries'
     masks_files: list of mask filenames with full path, can either be one mask
@@ -124,6 +124,7 @@ def mask_funcconnec_matrix(nifti_file,masks_files,outfile=None,masks_threshes = 
                  with multiple numerical labels (multi_labels = [num1, num2, ...])
     masks_threshes: list of numerical values to use as lower threshold for separate
                     mask files
+    covariate_ts_file: text file with timeseries for nuisance covariates to partial out
     output options:
     1) correlation matrix
     2) partial correlation matrix
@@ -138,6 +139,7 @@ def mask_funcconnec_matrix(nifti_file,masks_files,outfile=None,masks_threshes = 
                 masks_coords.append(core.get_nonzero_coords(mask, masks_threshes(count)))
         else:
             masks_coords = [core.get_nonzero_coords(mask) for mask in masks_files]
+    n_regions = len(masks_coords)
     connect_mat = np.zeros((len(masks_coords), len(masks_coords)))
     input = nib.load(nifti_file)
     input_d = input.get_data()
@@ -166,6 +168,20 @@ def mask_funcconnec_matrix(nifti_file,masks_files,outfile=None,masks_threshes = 
         mat = core.partialcorr_matrix(masks_mean_ts_array)
     elif cov:
         mat = np.cov(masks_mean_ts_array)
+    elif covariate_ts_file:
+        nuis_reg = np.array(core.file_reader(covariate_ts_file))
+        mat = np.zeros((n_regions,n_regions))
+        for i in range(n_regions):
+          for j in range(i+1,n_regions):
+            n1n2 = np.hstack((np.atleast_2d(masks_mean_ts_array[i,:]).T,np.atleast_2d(masks_mean_ts_array[j,:]).T))
+            X = np.vstack((n1n2.T,nuis_reg.T))
+            try:
+                pc_mat = core.partialcorr_matrix(X)
+                mat[i,j] = pc_mat[0,1]
+            except:
+                mat[i,j] = 0
+                print('Mask %d is empty, correlation will be stored as 0'%(j))
+        mat = mat + mat.T
     else:
         mat = np.corrcoef(masks_mean_ts_array)
     if zero_diag:
@@ -222,3 +238,84 @@ def princomp(A,numpc=10):
         coeff = coeff[:,range(numpc)] # cutting some PCs
     score = dot(coeff.T,M) # projection of the data in the new space
     return coeff,score,latent
+
+def whole_brain_degree(fmri_file,out_file=None,nuisance_file=False,mask_file=False,edge_threshold=0):
+    """Compute voxelwise whole brain degree
+
+    Parameters
+    ----------
+    fmri_file: string
+      The path to the fMRI 4D .nii file
+    out_file: string, optional
+      The path/name of the output .nii file. If not specified, output is 'whole_brain_degree.nii.gz'
+    nuisance_file : string, optional
+      The path to the nuisance parameters text file. If True regress out nuisance parameters first.
+    mask_file: string, optional
+      The path to a mask .nii file. If True only calculate whole brain degree amongst voxels in mask.
+    edge_threshold: num, optional
+      The r-value cutoff for determining whole brain degree; if specified, binary count of edges; otherwise, non-binary sum
+
+    Returns
+    -------
+
+    """
+    # Determine subset of voxels for which every voxel has nonzero values and optionally is in mask
+    input = nib.load(fmri_file)
+    input_d = input.get_data()
+    data_sum = np.sum(input_d,axis=3)
+    data_sum_flat = data_sum.flatten()
+    data_nzs = np.nonzero(data_sum_flat)
+
+    if mask_file:
+        mask = nib.load(mask_file)
+        mask_d = mask.get_data()
+        mask_d_flat = mask_d.flatten()
+        mask_nzs = np.nonzero(mask_d_flat)
+        keep_vox = list(set(data_nzs[0].tolist()) & set(mask_nzs[0].tolist()))
+    else:
+        keep_vox = data_nzs[0].tolist()
+    keep_vox.sort()
+    keep_vox_array = np.array(keep_vox)
+    n_vox = len(keep_vox)
+
+    dims = input_d.shape
+    input_d_flat = np.reshape(input_d, (dims[0]*dims[1]*dims[2],dims[3]))
+    input_d_flat_trim = input_d_flat[keep_vox,:]
+
+    del(input,input_d,input_d_flat,mask,mask_d,mask_d_flat)
+
+    # calculate voxelwise correlation matrix
+    r_mat = np.zeros((n_vox,n_vox))
+    if nuisance_file:
+        nuis_reg = np.array(core.file_reader(nuisance_file)).T
+        input_d_flat_trim_res = np.zeros((input_d_flat_trim.shape))
+        for i in range(len(input_d_flat_trim)):
+            ts = input_d_flat_trim[i,:]
+            reg = np.linalg.lstsq(nuis_reg.T,ts.T) # regress out nuisance parameters
+            beta = reg[0]
+            input_d_flat_trim_res[i,:] = np.squeeze(ts.T - nuis_reg.T.dot(beta)) # store residuals
+        del(input_d_flat_trim)
+        r_mat = np.corrcoef(input_d_flat_trim_res)
+    else:
+        r_mat = np.corrcoef(input_d_flat_trim)
+
+    r_mat = r_mat[0:len(keep_vox),0:len(keep_vox)]
+    r_mat = np.nan_to_num(r_mat)
+
+    # calculate whole brain degree
+    if edge_threshold > 0:
+        whole_brain_degree_vals = np.sum((r_mat > edge_threshold),axis=0) # binary count
+    else:
+        whole_brain_degree_vals = np.sum(r_mat,axis=0) # non-binary (weighted) sum
+
+    # get x,y,z values for each index
+    l = np.unravel_index(keep_vox_array,(dims[0],dims[1],dims[2]))
+
+    wb_deg_img = np.zeros((dims[0],dims[1],dims[2]))
+    wb_deg_img[l[0].tolist(),l[1].tolist(),l[2].tolist()] = whole_brain_degree_vals.tolist()
+    mni_img = nib.load('/data/mridata/jbrown/brains/MNI152_T1_4mm_brain.nii.gz')
+    img = nib.Nifti1Image(wb_deg_img, mni_img.get_affine())
+    if out_file:
+        img.to_filename(out_file)
+    else:
+        img.to_filename("whole_brain_degree.nii.gz")

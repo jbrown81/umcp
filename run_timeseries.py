@@ -44,6 +44,9 @@ def main():
     parser.add_option("--scrub", action="store", type="string", dest="scrubfile",
                       help="optional: include one column file with 1 for TRs to exclude, 0 for TRs to include")
 
+    parser.add_option("-n", "--nuis", action="store", type="string", dest="nuis",
+                      help="covary for nuisance parameter timeseries in FILENAME.txt")
+
     (options, args) = parser.parse_args()
 
     start = time.time()
@@ -72,8 +75,12 @@ def main():
             timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, cov=True, scrub_trs_file=scrub_trs_file)
     else:
         if options.corr:
-            print "timeseries.mask_funcconnec_matrix(%s, %s, %s)" % (options.funcfile, options.masksfile, options.output)
-            timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output)
+            if options.nuis:
+                print "timeseries.mask_funcconnec_matrix(%s, %s, %s, covariate_ts_file=%s)" % (options.funcfile, options.masksfile, options.output, options.nuis)
+                timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, covariate_ts_file=options.nuis)
+            else:
+                print "timeseries.mask_funcconnec_matrix(%s, %s, %s)" % (options.funcfile, options.masksfile, options.output)
+                timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output)
         elif options.pcorr:
             print "timeseries.mask_funcconnec_matrix(%s, %s, %s, partial=True)" % (options.funcfile, options.masksfile, options.output)
             timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, partial=True)
