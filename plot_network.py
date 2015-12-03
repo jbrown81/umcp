@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2013 Jesse Brown
+#    Copyright 2015 Jesse Brown
 
 import numpy as np
 import scipy.stats
@@ -699,7 +699,8 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
             names_dict[i] = ''
     
     size = float(len(set(partition.values())))
-    pos = nx.spring_layout(G, fixed=[0], iterations=5000)
+    #pos = nx.spring_layout(G, fixed=[0], iterations=5000)
+    pos = nx.spring_layout(G, iterations=5000)
 
     #module_colors = [0]*len(names_dict)
     #count = 0.
@@ -719,7 +720,7 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
             module_colors.append(c)
         else:
             rgb = colors[c]
-            module_colors.append(reg)
+            module_colors.append(rgb)
 
     #module_colors = [colors[node] for node in node_indiv_colors]
     count = 0.

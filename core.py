@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#    Copyright 2013 Jesse Brown
+#    Copyright 2015 Jesse Brown
 
 import os
 import sys

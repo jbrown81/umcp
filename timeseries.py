@@ -319,3 +319,67 @@ def whole_brain_degree(fmri_file,out_file=None,nuisance_file=False,mask_file=Fal
         img.to_filename(out_file)
     else:
         img.to_filename("whole_brain_degree.nii.gz")
+
+def mask_funcconnec_matrix_sliding(nifti_file,masks_files,outfile=None,masks_threshes = [],
+                           multi_labels=[],zero_diag=True,ts_outfile=None,covariate_ts_file=None,
+                           window_length=30):
+    """
+    Calculates correlation matrix for a set of mask mean timeseries'
+    masks_files: list of mask filenames with full path, can either be one mask
+                 per file (in which case multi_labels should be []) or one file
+                 with multiple numerical labels (multi_labels = [num1, num2, ...])
+    masks_threshes: list of numerical values to use as lower threshold for separate
+                    mask files
+    covariate_ts_file: text file with timeseries for nuisance covariates to partial out
+    window_length: the number of volumes to include in a sliding window correlation
+    output options:
+    1) correlation matrix
+    """
+    if multi_labels:
+        masks_coords = core.get_mask_labels(masks_files[0], labels=multi_labels)
+    else:
+        if masks_threshes:
+            masks_coords = []
+            for count, mask in enumerate(masks_files):
+                masks_coords.append(core.get_nonzero_coords(mask, masks_threshes(count)))
+        else:
+            masks_coords = [core.get_nonzero_coords(mask) for mask in masks_files]
+    n_regions = len(masks_coords)
+    input = nib.load(nifti_file)
+    input_d = input.get_data()
+    if len(input.shape) > 3:
+        ts_length = input.shape[3]
+    else:
+        ts_length = 1
+    masks_mean_ts_array = np.zeros((len(masks_coords), ts_length))
+    for count, mask_coords in enumerate(masks_coords):
+        mask_array = [input_d[mask_coord[0], mask_coord[1], mask_coord[2], :] for mask_coord in mask_coords]
+        masks_mean_ts_array[count, :] = np.mean(mask_array, axis=0)
+    if covariate_ts_file:
+        nuis_reg = np.array(core.file_reader(covariate_ts_file))
+        masks_mean_ts_array_resid = np.zeros((n_regions,ts_length))
+        for i in range(n_regions):
+            ts1 = np.atleast_2d(masks_mean_ts_array[i,:])
+            reg = np.linalg.lstsq(nuis_reg,ts1.T)
+            beta = reg[0]
+            ts1_resid = np.squeeze(ts1.T - nuis_reg.dot(beta))
+            masks_mean_ts_array_resid[i,:] = ts1_resid
+    n_windows = len(range(ts_length-window_length))
+    mats = np.zeros((n_regions,n_regions,n_windows))
+    for k in range(ts_length-window_length):
+        mat = np.zeros((n_regions,n_regions))
+        ts_start = k
+        ts_stop = k + window_length
+        if covariate_ts_file:
+            mat = np.corrcoef(masks_mean_ts_array_resid[:,ts_start:ts_stop])
+        else:
+            mat = np.corrcoef(masks_mean_ts_array[:,ts_start:ts_stop])
+        if zero_diag:
+            mat = mat * abs(1-np.eye(mat.shape[0])) # zero matrix diagonal
+        mats[:,:,k] = mat
+    if outfile:
+        mats_2d = np.reshape(mats,[n_regions,n_regions*n_windows],'F').T # stack matrices vertically
+        np.savetxt('%s.txt'%outfile, mats_2d)
+    if ts_outfile:
+        np.savetxt('%s.txt'%ts_outfile, masks_mean_ts_array)
+    return mats, masks_mean_ts_array
