@@ -70,8 +70,10 @@ def plot_matrix(connectmat_file, centers_file, threshold_pct=5, weight_edges=Fal
         nodes = new_nodes
     
     mlab.figure(bgcolor=(1, 1, 1), size=(400, 400))
-    a = [44]
-    b = [7, 153, 115]
+    a = [71,115,170]
+    b = []
+    #a = [44]
+    #b = [7, 153, 115]
     #a = [7]
     #b = [44, 153, 115]
     #a = [153, 31]
@@ -661,14 +663,23 @@ def plot_matrix_2d(connectmat_file,centers_file,names_file=None,grp_metrics=None
     plt.show()
     
 def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
-                threshold_pct=2,binarize=False,weight_edges=False,names_file=None):
+                threshold_pct=2,binarize=False,weight_edges=False,names_file=None,pos=None,prog=None,
+                out_filename=None,colorscheme=None):
     """
     Given connectivity matrix,
     a community index file (integer on each line specifying which module that node belongs to),
     and python list of strings specifying color for each node,
     use networkx and matplotlib to generate 2d spring-embedded plot
     """
-    alpha = .2
+    if colorscheme == 'black':    
+        plt.figure(figsize=(9,7),facecolor='black',edgecolor='white')
+        edge_color = 'w'
+        font_color = 'w'
+    else:
+        plt.figure(figsize=(9,7),facecolor='white',edgecolor='black')
+        edge_color = 'k'
+        font_color = 'k'
+    alpha = .02
     edge_interval_pct = 10
     m = core.file_reader(connectmat_file)
     ma = np.array(m)
@@ -700,7 +711,11 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
     
     size = float(len(set(partition.values())))
     #pos = nx.spring_layout(G, fixed=[0], iterations=5000)
-    pos = nx.spring_layout(G, iterations=5000)
+    if not pos:
+        if not prog:
+            pos = nx.spring_layout(G, iterations=500)
+        else:
+            pos = nx.graphviz_layout(G,prog=prog)
 
     #module_colors = [0]*len(names_dict)
     #count = 0.
@@ -728,7 +743,7 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
         count = count + 1.
         list_nodes = [nodes for nodes in partition.keys() if partition[nodes] == com]
         cur_mod_colors = [module_colors[node] for node in list_nodes]
-        nx.draw_networkx_nodes(G, pos, list_nodes, node_size = 1200,
+        nx.draw_networkx_nodes(G, pos, list_nodes, node_size = 300,
                                node_color = cur_mod_colors)
     
     if weight_edges:
@@ -736,19 +751,25 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
         nonzero_edges = cmat_thresh[np.nonzero(cmat_thresh)] # all nonzero edges
         percentiles = [core.my_scoreatpercentile(nonzero_edges, 100-x) for x in range(0,101,edge_interval_pct)]
         for i in range(len(percentiles)-1):
-            alpha_val = .1 + (i / 20.0) # edges in first percentile have alpha=0
+            alpha_val = .01 + (i / 20.0) # edges in first percentile have alpha=0
             thresh_low = percentiles[i]
             thresh_high = percentiles[i+1]
             edges.append([(u,v) for (u,v,d) in G.edges(data=True) if thresh_low <= d['weight'] <= thresh_high])
-            nx.draw_networkx_edges(G,pos,edgelist=edges[i],width=i/1.9,alpha=alpha_val,edge_color='k')
+            nx.draw_networkx_edges(G,pos,edgelist=edges[i],width=i/1.9,alpha=alpha_val,edge_color=edge_color)
     else:
         nx.draw_networkx_edges(G, pos, width=1, alpha=alpha)
         
     if names_file:
-        nx.draw_networkx_labels(G, pos, labels=names_dict, font_size=10)
+        nx.draw_networkx_labels(G, pos, labels=names_dict, font_size=10, font_color=font_color)
     plt.autoscale(tight=True)
     plt.axis('off')
-    plt.show(block=False)
+    if out_filename:
+        plt.savefig(out_filename)
+        #plt.savefig(out_filename,facecolor='black')
+        plt.close()
+    else:
+        plt.show(block=True)
+    return pos
     
 def plot_tracks(trk_file):
     """
@@ -761,17 +782,18 @@ def plot_tracks(trk_file):
         trs = np.reshape(t, (tl/3,3))
         mlab.plot3d(trs[:,0], trs[:,1], trs[:,2])
         
-def animation(delay=10, continuous=False, degree_step=2, save_movie=False):
+def animation(delay=10, continuous=False, degree_step=1, save_movie=False):
     # IN PROGRESS
     from mayavi import mlab
     @mlab.animate(delay=delay)
     def anim():
         f = mlab.gcf()
-        for count, i in enumerate(range(2,361,2)):
+        for count, i in enumerate(range(1,361,1)):
         #while 1:
             f.scene.camera.azimuth(degree_step)
             f.scene.render()
-            mlab.savefig('/Users/jessebrown/Desktop/hp_paper/sc_movies/visual_sensory/img_%03d.png' %count)
+            #mlab.savefig('/Users/jessebrown/Desktop/hp_paper/sc_movies/visual_sensory/img_%03d.png' %count)
+            mlab.savefig('/Users/jessebrown/Desktop/traveling_stars_paper/sc_movies/frontoparietal_active_encoding_sc_network/img_%03d.png' %count)
             yield
     
     a = anim() # Starts the animation.

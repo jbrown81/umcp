@@ -30,7 +30,7 @@ def main():
     parser.add_option("-f", "--func", action="store", type="string", dest="funcfile",
                       help="read 4D BOLD fMRI data from FILENAME.nii")
     parser.add_option("-m", "--masks", action="store", type="string", dest="masksfile",
-                      help="read mask filenames stored on separate lines in FILENAME.txt")
+                      help="read mask filenames stored on separate lines in <FILENAME>.txt")
     parser.add_option("-o", "--out", action="store", type="string", dest="output",
                       help="output file prefix")
 
@@ -45,7 +45,10 @@ def main():
                       help="optional: include one column file with 1 for TRs to exclude, 0 for TRs to include")
 
     parser.add_option("-n", "--nuis", action="store", type="string", dest="nuis",
-                      help="covary for nuisance parameter timeseries in FILENAME.txt")
+                      help="covary for nuisance parameter timeseries in <FILENAME>.txt")
+    
+    parser.add_option("--tsout", action="store", type="string", dest="tsout",
+                      help="save mask mean timeseries in <FILENAME>.txt")
 
     (options, args) = parser.parse_args()
 
@@ -77,16 +80,16 @@ def main():
         if options.corr:
             if options.nuis:
                 print "timeseries.mask_funcconnec_matrix(%s, %s, %s, covariate_ts_file=%s)" % (options.funcfile, options.masksfile, options.output, options.nuis)
-                timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, covariate_ts_file=options.nuis)
+                timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, covariate_ts_file=options.nuis, ts_outfile=options.tsout)
             else:
                 print "timeseries.mask_funcconnec_matrix(%s, %s, %s)" % (options.funcfile, options.masksfile, options.output)
-                timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output)
+                timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, ts_outfile=options.tsout)
         elif options.pcorr:
             print "timeseries.mask_funcconnec_matrix(%s, %s, %s, partial=True)" % (options.funcfile, options.masksfile, options.output)
-            timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, partial=True)
+            timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, partial=True, ts_outfile=options.tsout)
         elif options.cov:
             print "timeseries.mask_funcconnec_matrix(%s, %s, %s, cov=True)" % (options.funcfile, options.masksfile, options.output)
-            timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, cov=True)
+            timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, cov=True, ts_outfile=options.tsout)
 
     elapsed = time.time() - start
     print "Took %s seconds to run" % elapsed
