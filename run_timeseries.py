@@ -55,44 +55,44 @@ def main():
     start = time.time()
 
     if not options.funcfile:
-        print "Must specify input .nii file"
+        print("Must specify input .nii file")
     
     if options.masksfile:
         masks_files = core.file_reader(options.masksfile, True)
     else:
-        print "Must specify input mask list .txt file"
+        print("Must specify input mask list .txt file")
         
     if options.output == None:
-        print "Must specify output file prefix"
+        print("Must specify output file prefix")
 
     # Get connectivity matrix for all masks in list
     if options.scrubfile:
         if options.corr:
-            print "timeseries.mask_funcconnec_matrix(%s, %s, %s, scrub_trs_file=%s)" % (options.funcfile, options.masksfile, options.output, options.scrubfile)
+            print("timeseries.mask_funcconnec_matrix(%s, %s, %s, scrub_trs_file=%s)" % (options.funcfile, options.masksfile, options.output, options.scrubfile))
             timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, scrub_trs_file=scrub_trs_file)
         elif options.pcorr:
-            print "timeseries.mask_funcconnec_matrix(%s, %s, %s, partial=True, scrub_trs_file=%s)" % (options.funcfile, options.masksfile, options.output, options.scrubfile)
+            print("timeseries.mask_funcconnec_matrix(%s, %s, %s, partial=True, scrub_trs_file=%s)" % (options.funcfile, options.masksfile, options.output, options.scrubfile))
             timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, partial=True, scrub_trs_file=scrub_trs_file)
         elif options.cov:
-            print "timeseries.mask_funcconnec_matrix(%s, %s, %s, cov=True, scrub_trs_file=%s)" % (options.funcfile, options.masksfile, options.output, options.scrubfile)
+            print("timeseries.mask_funcconnec_matrix(%s, %s, %s, cov=True, scrub_trs_file=%s)" % (options.funcfile, options.masksfile, options.output, options.scrubfile))
             timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, cov=True, scrub_trs_file=scrub_trs_file)
     else:
         if options.corr:
             if options.nuis:
-                print "timeseries.mask_funcconnec_matrix(%s, %s, %s, covariate_ts_file=%s)" % (options.funcfile, options.masksfile, options.output, options.nuis)
+                print("timeseries.mask_funcconnec_matrix(%s, %s, %s, covariate_ts_file=%s)" % (options.funcfile, options.masksfile, options.output, options.nuis))
                 timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, covariate_ts_file=options.nuis, ts_outfile=options.tsout)
             else:
-                print "timeseries.mask_funcconnec_matrix(%s, %s, %s)" % (options.funcfile, options.masksfile, options.output)
+                print("timeseries.mask_funcconnec_matrix(%s, %s, %s)" % (options.funcfile, options.masksfile, options.output))
                 timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, ts_outfile=options.tsout)
         elif options.pcorr:
-            print "timeseries.mask_funcconnec_matrix(%s, %s, %s, partial=True)" % (options.funcfile, options.masksfile, options.output)
+            print("timeseries.mask_funcconnec_matrix(%s, %s, %s, partial=True)" % (options.funcfile, options.masksfile, options.output))
             timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, partial=True, ts_outfile=options.tsout)
         elif options.cov:
-            print "timeseries.mask_funcconnec_matrix(%s, %s, %s, cov=True)" % (options.funcfile, options.masksfile, options.output)
+            print("timeseries.mask_funcconnec_matrix(%s, %s, %s, cov=True)" % (options.funcfile, options.masksfile, options.output))
             timeseries.mask_funcconnec_matrix(options.funcfile, masks_files, options.output, cov=True, ts_outfile=options.tsout)
 
     elapsed = time.time() - start
-    print "Took %s seconds to run" % elapsed
+    print("Took %s seconds to run" % elapsed)
 
 if __name__ == "__main__":
     main()

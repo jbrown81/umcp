@@ -75,33 +75,33 @@ def main():
 
     if options.tracksfile:
         if diffusion_toolkit:
-            print "tracks_list_mm = tracks.get_floats('%s')" % options.tracksfile
+            print("tracks_list_mm = tracks.get_floats('%s')" % options.tracksfile)
             filelog.write("tracks_list_mm = tracks.get_floats('%s')\n" % options.tracksfile)
             tracks_list_mm = tracks.get_floats(options.tracksfile)
-            print "header = tracks.get_header('%s')" % options.tracksfile
+            print("header = tracks.get_header('%s')" % options.tracksfile)
             filelog.write("header = tracks.get_header('%s')\n" % options.tracksfile)
             header = tracks.get_header(options.tracksfile)
             
             # Convert coordinates from mm to voxel coordinates
-            print "tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header)"
+            print("tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header)")
             filelog.write("tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header)\n")
             tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header)
-            print "tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)"
+            print("tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)")
             filelog.write("tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)\n")
             tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)
         else:
-            print "tracks_list_mm = tracks.get_floats('%s')" % options.tracksfile
+            print("tracks_list_mm = tracks.get_floats('%s')" % options.tracksfile)
             filelog.write("tracks_list_mm = tracks.get_floats('%s')\n" % options.tracksfile)
             tracks_list_mm = tracks.get_floats(options.tracksfile)
-            print "header = tracks.get_header('%s')" % options.tracksfile
+            print("header = tracks.get_header('%s')" % options.tracksfile)
             filelog.write("header = tracks.get_header('%s')\n" % options.tracksfile)
             header = tracks.get_header(options.tracksfile)
             
             # Convert coordinates from mm to voxel coordinates
-            print "tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header)"
+            print("tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header)")
             filelog.write("tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header, dsi_studio=True)\n")
             tracks_list_vox = tracks.mm_to_vox_convert(tracks_list_mm, header, dsi_studio=True)
-            print "tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)"
+            print("tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)")
             filelog.write("tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)\n")
             tracks_list_vox_filled = tracks.add_missing_vox(tracks_list_vox)
             
@@ -109,7 +109,7 @@ def main():
             #filelog.write("tracks_list_vox_filled = tracks.get_tracks_dsi_studio(%s)\n" % options.tracksfile)
             #tracks_list_vox_filled = tracks.get_tracks_dsi_studio(options.tracksfile)
     else:
-        print "Must specify input .trk/.txt file"
+        print("Must specify input .trk/.txt file")
     
     if options.masksfile:
         fin = open(options.masksfile)
@@ -119,10 +119,10 @@ def main():
             mask_list.append(pos)
         fin.close()
     else:
-        print "Must specify input mask list .txt file"
+        print("Must specify input mask list .txt file")
         
     if options.output == None:
-        print "Must specify output file prefix"
+        print("Must specify output file prefix")
     
     if options.maskthresh == None:
         options.maskthresh = 0
@@ -147,7 +147,7 @@ def main():
             #    filelog.write("outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list,'%s',%s,%s,tracks_list_mm,%s)\n" % (options.output, options.maskthresh, cthrough,options.lenthresh))
             #    outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list, options.output, options.maskthresh, cthrough,tracks_list_mm,options.lenthresh)
             #else:
-                print "outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list,'%s',%s,%s,tracks_list_mm,%s)" % (options.output, options.maskthresh, cthrough,options.lenthresh)
+                print("outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list,'%s',%s,%s,tracks_list_mm,%s)" % (options.output, options.maskthresh, cthrough,options.lenthresh))
                 filelog.write("outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list,'%s',%s,%s,tracks_list_mm,%s)\n" % (options.output, options.maskthresh, cthrough,options.lenthresh))
                 outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list, options.output, options.maskthresh, cthrough,tracks_list_mm,options.lenthresh)
         else:
@@ -156,46 +156,46 @@ def main():
             #    filelog.write("outmat,tracknums_mat=tracks.mask_connectivity_matrix_NEW(tracks_list_vox_filled,mask_list,'%s',%s,%s)\n" % (options.output, options.maskthresh, cthrough))
             #    outmat,tracknums_mat=tracks.mask_connectivity_matrix_dsi(tracks_list_vox_filled,mask_list, options.output, options.maskthresh, cthrough)                
             #else:
-                print "outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list,'%s',%s,%s)" % (options.output, options.maskthresh, cthrough)
+                print("outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list,'%s',%s,%s)" % (options.output, options.maskthresh, cthrough))
                 filelog.write("outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list,'%s',%s,%s)\n" % (options.output, options.maskthresh, cthrough))
                 outmat,tracknums_mat=tracks.mask_connectivity_matrix(tracks_list_vox_filled,header,mask_list, options.output, options.maskthresh, cthrough)
         
         if options.stats:
             if options.statimage:
-                print "volumemat,lengthmat,curvemat,statmat = tracks.track_stats_group(tracknums_mat,tracks_list,header,'%s',tracks_list_vox_filled,'%s')" % (options.output, options.statimage)
+                print("volumemat,lengthmat,curvemat,statmat = tracks.track_stats_group(tracknums_mat,tracks_list,header,'%s',tracks_list_vox_filled,'%s')" % (options.output, options.statimage))
                 filelog.write("volumemat,lengthmat,curvemat,statmat = tracks.track_stats_group(tracknums_mat,tracks_list,header,'%s',tracks_list_vox_filled,'%s')\n" % (options.output, options.statimage))
                 volumemat,lengthmat,curvemat,statmat = tracks.track_stats_group(tracknums_mat,tracks_list_mm,header,options.output,tracks_list_vox_filled,options.statimage)
             else:
-                print "volumemat,lengthmat,curvemat = tracks.track_stats_group(tracknums_mat,tracks_list,header,'%s')" % options.output
+                print("volumemat,lengthmat,curvemat = tracks.track_stats_group(tracknums_mat,tracks_list,header,'%s')" % options.output)
                 filelog.write("volumemat,lengthmat,curvemat = tracks.track_stats_group(tracknums_mat,tracks_list,header,'%s')\n" % options.output)
                 volumemat,lengthmat,curvemat = tracks.track_stats_group(tracknums_mat,tracks_list_mm,header,options.output)
 
     if options.density:
         # Get density files for all masks in list and write as 4D .nii file
         if options.lenthresh:
-            print "tracknums_list = tracks.mask_tracks(tracks_list_vox_filled,header,mask_list,%s,%s,%s,'%s',tracks_list_mm,%s)" % (options.maskthresh, dthrough, options.densnii, options.output,options.lenthresh)
+            print("tracknums_list = tracks.mask_tracks(tracks_list_vox_filled,header,mask_list,%s,%s,%s,'%s',tracks_list_mm,%s)" % (options.maskthresh, dthrough, options.densnii, options.output,options.lenthresh))
             filelog.write("tracknums_list = tracks.mask_tracks(tracks_list_vox_filled,header,mask_list,%s,%s,%s,'%s',tracks_list_mm,%s)\n" % (options.maskthresh, dthrough, options.densnii, options.output,options.lenthresh))
             tracknums_list = tracks.mask_tracks(tracks_list_vox_filled,header,mask_list, options.maskthresh, dthrough, options.densnii, options.output,tracks_list_mm,options.lenthresh)
         else:
-            print "tracknums_list = tracks.mask_tracks(tracks_list_vox_filled,header,mask_list,%s,%s,%s,'%s')" % (options.maskthresh, dthrough, options.densnii, options.output)
+            print("tracknums_list = tracks.mask_tracks(tracks_list_vox_filled,header,mask_list,%s,%s,%s,'%s')" % (options.maskthresh, dthrough, options.densnii, options.output))
             filelog.write("tracknums_list = tracks.mask_tracks(tracks_list_vox_filled,header,mask_list,%s,%s,%s,'%s')\n" % (options.maskthresh, dthrough, options.densnii, options.output))
             tracknums_list = tracks.mask_tracks(tracks_list_vox_filled,header,mask_list, options.maskthresh, dthrough, options.densnii, options.output)
         
         if options.stats:
             if options.statimage:
-                print "volumelist,lengthlist,curvelist,statlist = tracks.track_stats_list(tracknums_list,tracks_list_mm,header,'%s',tracks_list_vox_filled,'%s')" % (options.output, options.statimage)
+                print("volumelist,lengthlist,curvelist,statlist = tracks.track_stats_list(tracknums_list,tracks_list_mm,header,'%s',tracks_list_vox_filled,'%s')" % (options.output, options.statimage))
                 filelog.write("volumelist,lengthlist,curvelist,statlist = tracks.track_stats_list(tracknums_list,tracks_list_mm,header,'%s',tracks_list_vox_filled,'%s')\n" % (options.output, options.statimage))
                 volumelist,lengthlist,curvelist,statlist = tracks.track_stats_list(tracknums_list,tracks_list_mm,header,options.output,tracks_list_vox_filled,options.statimage)
             else:
-                print "volumelist,lengthlist,curvelist = tracks.track_stats_list(tracknums_list,tracks_list_mm,header,'%s')" % options.output
+                print("volumelist,lengthlist,curvelist = tracks.track_stats_list(tracknums_list,tracks_list_mm,header,'%s')" % options.output)
                 filelog.write("volumelist,lengthlist,curvelist = tracks.track_stats_list(tracknums_list,tracks_list_mm,header,'%s')\n" % options.output)
                 volumelist,lengthlist,curvelist = tracks.track_stats_list(tracknums_list,tracks_list_mm,header,options.output)
 
     if options.connectmat == None and options.density == None:
-        print "Must specify either -c or -d"
+        print("Must specify either -c or -d")
 
     elapsed = time.time() - start
-    print "Took %s seconds to run" % elapsed
+    print("Took %s seconds to run" % elapsed)
     filelog.write("Took %s seconds to run" % elapsed)
     filelog.close()
 

@@ -20,9 +20,8 @@
 import os
 import sys
 import numpy as np
-import nibabel as nib
+#import nibabel as nib
 import re
-from commands import getoutput
 
 def get_nonzero_coords(nifti_file,thresh=0,value=0):
     """
@@ -323,8 +322,9 @@ def maxprob(coord):
 	Given a x,y,z coordinate in MNI152 space, use FSL atlasquery to find maximum
 	probability region
 	"""
+	from commands import getoutput
 	# this can be extended for any atlas that atlasquery uses, including Talairach Daemon
-	print coord
+	print(coord)
 	outs = []
 	cmd1 = 'atlasquery -a "Harvard-Oxford Cortical Structural Atlas" -c %s' %(coord, )
 	cmd2 = 'atlasquery -a "Harvard-Oxford Subcortical Structural Atlas" -c %s' %(coord, )
@@ -376,7 +376,7 @@ def maxprob(coord):
 		outs_ints = [int(x.split('%')[0]) for x in outs]
 		outs_ints_max = outs_ints.index(max(outs_ints))
 		outs_max = outs[outs_ints_max].split('% ')[1]
-	print outs
+	print(outs)
 	return outs_max
 
 def regions_file(centers_file, output_file):
@@ -523,7 +523,13 @@ def abbrevs_file(regions_file, output_file):
         'Right VIIIb': 'RCrb8b',
         'Right VIIb': 'RCrb7b',
         'Right X': 'RCrb10',
-        'Vermis VIIIa': 'CrbVrm',
+        'Vermis VIIIa': 'CrbVrm8a',
+        'Vermis VI': 'CrbVrm6',
+        'Vermis Crus II': 'CrbVrmC2',
+        'Vermis VIIb': 'CrbVrm7b',
+        'Vermis VIIIb': 'CrbVrm8b',
+        'Vermis IX': 'CrbVrm9',
+        'Vermis X': 'CrbVrm10'
     }
     for r in region_names:
         if r in harvox_region_names:
@@ -535,5 +541,21 @@ def abbrevs_file(regions_file, output_file):
         f.write(n + '\n')
     f.close()
     
-    def aal_region(mask_file):
+    def k_shortest_path(connectmat_file,threshold_pct=0,binarize=False):
+        import networkx as nx
+        m = core.file_reader(connectmat_file)
+        ma = np.array(m)
+        if threshold_pct:
+            thresh = scipy.stats.scoreatpercentile(ma.ravel(),100-threshold_pct)
+            ma_thresh = ma*(ma > thresh)
+        else:
+            ma_thresh = ma
+        ma_bin = 1*(ma_thresh != 0)
+        if binarize:
+            ma_thresh = 1*(ma_thresh != 0)
+        cmat_thresh = ma_thresh
+        G = nx.Graph(ma_thresh)
+        ma_thresh_inv = 1.0 / ma_thresh
+        ma_thresh_inv[np.isinf(ma_thresh_inv)]=0
+        G_inv = nx.Graph(ma_thresh_inv)
         

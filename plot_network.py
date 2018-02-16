@@ -373,7 +373,7 @@ def plot_matrix_path(connectmat_file,centers_file,paths_file,path_num=0,threshol
     paths=zip(*core.file_reader(paths_file))
     path=paths[path_num]
     path_pairs=zip(path[0:len(path)-1],path[1:])
-    print path_pairs
+    print(path_pairs)
     if names_file:
         names=core.file_reader(names_file)
     num_nodes=len(nodes)
@@ -664,7 +664,7 @@ def plot_matrix_2d(connectmat_file,centers_file,names_file=None,grp_metrics=None
     
 def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
                 threshold_pct=2,binarize=False,weight_edges=False,names_file=None,pos=None,prog=None,
-                out_filename=None,colorscheme=None):
+                out_filename=None,colorscheme=None,node_size=300,cmap=None):
     """
     Given connectivity matrix,
     a community index file (integer on each line specifying which module that node belongs to),
@@ -695,9 +695,11 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
     G = nx.Graph(ma_thresh)
     
     partition_list = core.file_reader(comm_index_file)
+    partition_list = [x[0] for x in partition_list]
     partition = {}
     for count,i in enumerate(partition_list):
-        partition[count] = i[0]
+        #partition[count] = i[0]
+        partition[count] = i
 
     if names_file:
         names = core.file_reader(names_file,1)
@@ -711,11 +713,15 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
     
     size = float(len(set(partition.values())))
     #pos = nx.spring_layout(G, fixed=[0], iterations=5000)
+
     if not pos:
         if not prog:
             pos = nx.spring_layout(G, iterations=500)
+            #pos = nx.fruchterman_reingold_layout(G)
+            #pos = nx.spectral_layout(G)
         else:
-            pos = nx.graphviz_layout(G,prog=prog)
+            pos = nx.nx_pydot.graphviz_layout(G, prog='neato')
+            #pos = nx.graphviz_layout(G,prog=prog)
 
     #module_colors = [0]*len(names_dict)
     #count = 0.
@@ -734,24 +740,30 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
         if isinstance(c, tuple):
             module_colors.append(c)
         else:
-            rgb = colors[c]
+            rgb = c
+            #rgb = colors[c]
             module_colors.append(rgb)
 
     #module_colors = [colors[node] for node in node_indiv_colors]
     count = 0.
+
     for com in set(partition.values()) :
         count = count + 1.
         list_nodes = [nodes for nodes in partition.keys() if partition[nodes] == com]
         cur_mod_colors = [module_colors[node] for node in list_nodes]
-        nx.draw_networkx_nodes(G, pos, list_nodes, node_size = 300,
-                               node_color = cur_mod_colors)
+        if cmap:
+            nodes = nx.draw_networkx_nodes(G, pos, list_nodes, node_size = node_size, node_color = cur_mod_colors, linewidths=1, cmap=cmap)
+        else:
+            nodes = nx.draw_networkx_nodes(G, pos, list_nodes, node_size = node_size, node_color = cur_mod_colors, linewidths=1)
+        nodes.set_edgecolor('k')
     
     if weight_edges:
         edges = []
         nonzero_edges = cmat_thresh[np.nonzero(cmat_thresh)] # all nonzero edges
-        percentiles = [core.my_scoreatpercentile(nonzero_edges, 100-x) for x in range(0,101,edge_interval_pct)]
+        #percentiles = [core.my_scoreatpercentile(nonzero_edges, 100-x) for x in range(0,101,edge_interval_pct)]
+        percentiles = [np.percentile(nonzero_edges,100-x) for x in range(0,101,edge_interval_pct)][::-1]
         for i in range(len(percentiles)-1):
-            alpha_val = .01 + (i / 20.0) # edges in first percentile have alpha=0
+            alpha_val = .01 + (i / 200.0) # edges in first percentile have alpha=0
             thresh_low = percentiles[i]
             thresh_high = percentiles[i+1]
             edges.append([(u,v) for (u,v,d) in G.edges(data=True) if thresh_low <= d['weight'] <= thresh_high])
