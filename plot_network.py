@@ -664,7 +664,7 @@ def plot_matrix_2d(connectmat_file,centers_file,names_file=None,grp_metrics=None
     
 def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
                 threshold_pct=2,binarize=False,weight_edges=False,names_file=None,pos=None,prog=None,
-                out_filename=None,colorscheme=None,node_size=300,cmap=None):
+                out_filename=None,colorscheme=None,node_size=300,cmap=None,edge_colors=None,line_widths=None):
     """
     Given connectivity matrix,
     a community index file (integer on each line specifying which module that node belongs to),
@@ -693,13 +693,7 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
         ma_thresh = 1*(ma_thresh != 0)
     cmat_thresh = ma_thresh
     G = nx.Graph(ma_thresh)
-    
-    partition_list = core.file_reader(comm_index_file)
-    partition_list = [x[0] for x in partition_list]
-    partition = {}
-    for count,i in enumerate(partition_list):
-        #partition[count] = i[0]
-        partition[count] = i
+    n_nodes = len(G)
 
     if names_file:
         names = core.file_reader(names_file,1)
@@ -710,9 +704,6 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
         names_dict={}
         for i in range(ma.shape[0]):
             names_dict[i] = ''
-    
-    size = float(len(set(partition.values())))
-    #pos = nx.spring_layout(G, fixed=[0], iterations=5000)
 
     if not pos:
         if not prog:
@@ -723,39 +714,24 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
             pos = nx.nx_pydot.graphviz_layout(G, prog='neato')
             #pos = nx.graphviz_layout(G,prog=prog)
 
-    #module_colors = [0]*len(names_dict)
-    #count = 0.
-    #for com in set(partition.values()) :
-    #    count = count + 1.
-    #    list_nodes = [nodes for nodes in partition.keys()
-    #                                if partition[nodes] == com]
-    #rgb = matplotlib.cm.jet(norm(fracs[count-1]))[0:3]
-    #rgb_255 = tuple([int(a*255) for a in rgb])
-    #hex = '#%02x%02x%02x' % tuple(rgb_255)
-    #for node in list_nodes:
-    #    module_colors[node] = hex
-
-    module_colors = []
-    for c in node_indiv_colors:
-        if isinstance(c, tuple):
-            module_colors.append(c)
-        else:
-            rgb = c
-            #rgb = colors[c]
-            module_colors.append(rgb)
+    if edge_colors is None:
+        edge_colors = [[0,0,0,1] for n in node_indiv_colors]
+    if line_widths is None:
+        line_widths = [1 for n in node_indiv_colors]
 
     #module_colors = [colors[node] for node in node_indiv_colors]
     count = 0.
-
-    for com in set(partition.values()) :
-        count = count + 1.
-        list_nodes = [nodes for nodes in partition.keys() if partition[nodes] == com]
-        cur_mod_colors = [module_colors[node] for node in list_nodes]
+    
+    # color edges for different groups of nodes
+    for n in range(n_nodes):
         if cmap:
-            nodes = nx.draw_networkx_nodes(G, pos, list_nodes, node_size = node_size, node_color = cur_mod_colors, linewidths=1, cmap=cmap)
+            print('this doesnt work for cmap right now')
+            break
+            #nodes = nx.draw_networkx_nodes(G, pos, [n], node_size = node_size, node_color = node_indiv_colors[count], linewidths=line_widths[n], cmap=cmap)
+            #nodes.set_edgecolor(edge_colors[n])
         else:
-            nodes = nx.draw_networkx_nodes(G, pos, list_nodes, node_size = node_size, node_color = cur_mod_colors, linewidths=1)
-        nodes.set_edgecolor('k')
+            nodes = nx.draw_networkx_nodes(G, pos, [n], node_size = node_size, node_color = node_indiv_colors[n], linewidths=line_widths[n])
+            nodes.set_edgecolor(edge_colors[n])
     
     if weight_edges:
         edges = []
@@ -769,6 +745,7 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
             edges.append([(u,v) for (u,v,d) in G.edges(data=True) if thresh_low <= d['weight'] <= thresh_high])
             nx.draw_networkx_edges(G,pos,edgelist=edges[i],width=i/1.9,alpha=alpha_val,edge_color=edge_color)
     else:
+        #nx.draw_networkx_edges(G, pos, width=1, alpha=alpha)
         nx.draw_networkx_edges(G, pos, width=1, alpha=alpha)
         
     if names_file:
