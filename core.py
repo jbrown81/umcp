@@ -616,11 +616,12 @@ def spatial_corr(input_filename1,input_filename2,mask_filename=None):
     input2_d = input2.get_data()
     
     if mask_filename:
-        mask_coords = get_nonzero_coords(mask_filename)
+        input3 = nib.load(mask_filename)
+        input3_d = input3.get_data()
+    
+        mask_coords = np.nonzero(input3_d)
         input_corr = np.corrcoef(input1_d[mask_coords],input2_d[mask_coords])
     else:
-        input_corr = np.corrcoef(input1_d[:],input2_d[:])
+        input_corr = np.corrcoef(input1_d.flatten(),input2_d.flatten())
     
-    print(input_corr)
-    
-    
+    print('spatial correlation: r=%1.2f'%(input_corr[0,1])
