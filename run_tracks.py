@@ -1,4 +1,4 @@
-#!/opt/local/bin/python
+#!/anaconda3/bin/python
 
 #    This program is part of the UCLA Multimodal Connectivity Package (UMCP)
 #

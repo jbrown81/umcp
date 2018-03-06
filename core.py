@@ -20,7 +20,7 @@
 import os
 import sys
 import numpy as np
-#import nibabel as nib
+import nibabel as nib
 import re
 
 def get_nonzero_coords(nifti_file,thresh=0,value=0):
@@ -559,3 +559,48 @@ def abbrevs_file(regions_file, output_file):
         ma_thresh_inv[np.isinf(ma_thresh_inv)]=0
         G_inv = nx.Graph(ma_thresh_inv)
         
+def nifti_4d_mean(input_filenames,output_filename):
+    """
+    Takes a list input 3d nifti filenames, calculates 4d mean
+    """
+    input = nib.load(input_filenames[0])
+    input_d = input.get_data()
+    input_d_shape = input_d.shape
+    n_files = len(input_filenames)
+    input_sum = np.zeros((input_d_shape[0],input_d_shape[1],input_d_shape[3],n_files))
+    for count, file in enumerate(input_filenames):
+        input = nib.load(file)
+        input_d = input.get_data()
+        input_sum = input_sum + input_d
+
+    input_avg = input_sum / count
+
+    output_file = nib.Nifti1Image(input_avg, input.get_affine())
+    nib.save(output_file, output_filename)
+    
+def nifti_4d_std(input_filenames,output_filename):
+    """
+    Takes a list input 3d nifti filenames, calculates 4d standard deviation
+    """
+    input = nib.load(input_filenames[0])
+    input_d = input.get_data()
+    input_d_shape = input_d.shape
+    n_files = len(input_filenames)
+    input_sum = np.zeros(input_d_shape)
+    for count, file in enumerate(input_filenames):
+        input = nib.load(file)
+        input_d = input.get_data()
+        input_sum = input_sum + input_d
+
+    input_avg = input_sum / count
+    
+    input_std_sum = np.zeros((input_d_shape))
+    for count,file in enumerate(files):
+        input = nib.load(file)
+        input_d = input.get_data()
+        input_std_sum = input_std_sum + ((input_d - input_avg) * (input_d - input_avg))
+
+    input_std = np.sqrt(input_std_sum / (length(files)-1))
+
+    output_file = nib.Nifti1Image(input_avg, input.get_affine())
+    nib.save(output_file, output_filename)
