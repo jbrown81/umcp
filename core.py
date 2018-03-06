@@ -604,3 +604,21 @@ def nifti_4d_std(input_filenames,output_filename):
 
     output_file = nib.Nifti1Image(input_avg, input.get_affine())
     nib.save(output_file, output_filename)
+    
+def spatial_corr(input_filename1,input_filename2,mask_filename=None):
+    """
+    Takes two nifti files, calculates spatial correlation
+    """
+    input1 = nib.load(input_filename1)
+    input1_d = input1.get_data()
+    
+    input2 = nib.load(input_filename2)
+    input2_d = input.get_data()
+    
+    if mask_filename:
+        mask_coords = get_nonzero_coords(mask_filename)
+        input_corr = np.corrcoef(input1_d[mask_coords],input2_d[mask_coords])
+    else:
+        input_corr = np.corrcoef(input1_d[:],input2_d[:])
+    
+    print(input_corr)
