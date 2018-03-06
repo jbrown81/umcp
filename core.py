@@ -624,4 +624,4 @@ def spatial_corr(input_filename1,input_filename2,mask_filename=None):
     else:
         input_corr = np.corrcoef(input1_d.flatten(),input2_d.flatten())
     
-    print('spatial correlation: r=%1.2f'%(input_corr[0,1])
+    print('spatial correlation: r=%1.2f'%(input_corr[0,1]))
