@@ -623,12 +623,12 @@ def spatial_corr(input_filename1,input_filename2,mask_filename=None,type='pearso
     
         mask_coords = np.nonzero(input3_d)
         if type is 'spearman':
-            input_corr = scipy.stats.spearman(input1_d[mask_coords],input2_d[mask_coords])
+            input_corr = scipy.stats.spearmanr(input1_d[mask_coords],input2_d[mask_coords])
         else:
             input_corr = np.corrcoef(input1_d[mask_coords],input2_d[mask_coords])
     else:
         if type is 'spearman':
-            input_corr = scipy.stats.spearman(input1_d.flatten(),input2_d.flatten())
+            input_corr = scipy.stats.spearmanr(input1_d.flatten(),input2_d.flatten())
         else:
             input_corr = np.corrcoef(input1_d.flatten(),input2_d.flatten())
     
