@@ -605,7 +605,7 @@ def nifti_4d_std(input_filenames,output_filename):
     output_file = nib.Nifti1Image(input_avg, input.get_affine())
     nib.save(output_file, output_filename)
     
-def spatial_corr(input_filename1,input_filename2,mask_filename=None):
+def spatial_corr(input_filename1,input_filename2,mask_filename=None,type='pearson'):
     """
     Takes two nifti files, calculates spatial correlation
     """
@@ -620,9 +620,15 @@ def spatial_corr(input_filename1,input_filename2,mask_filename=None):
         input3_d = input3.get_data()
     
         mask_coords = np.nonzero(input3_d)
-        input_corr = np.corrcoef(input1_d[mask_coords],input2_d[mask_coords])
+        if type is 'spearman':
+            input_corr = scipy.stats.spearman(input1_d[mask_coords],input2_d[mask_coords])
+        else:
+            input_corr = np.corrcoef(input1_d[mask_coords],input2_d[mask_coords])
     else:
-        input_corr = np.corrcoef(input1_d.flatten(),input2_d.flatten())
+        if type is 'spearman':
+            input_corr = scipy.stats.spearman(input1_d.flatten(),input2_d.flatten())
+        else:
+            input_corr = np.corrcoef(input1_d.flatten(),input2_d.flatten())
     
     print('spatial correlation: r=%1.4f'%(input_corr[0,1]))
     return input_corr[0,1]
