@@ -21,6 +21,7 @@ import os
 import sys
 import numpy as np
 import scipy
+import scipy.stats
 import nibabel as nib
 import re
 
