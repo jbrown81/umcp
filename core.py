@@ -602,7 +602,7 @@ def nifti_4d_std(input_filenames,output_filename):
         input_d = input.get_data()
         input_std_sum = input_std_sum + ((input_d - input_avg) * (input_d - input_avg))
 
-    input_std = np.sqrt(input_std_sum / (length(files)-1))
+    input_std = np.sqrt(input_std_sum / (len(files)-1))
 
     output_file = nib.Nifti1Image(input_avg, input.get_affine())
     nib.save(output_file, output_filename)
