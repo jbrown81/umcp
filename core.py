@@ -569,7 +569,7 @@ def nifti_4d_mean(input_filenames,output_filename):
     input_d = input.get_data()
     input_d_shape = input_d.shape
     n_files = len(input_filenames)
-    input_sum = np.zeros((input_d_shape[0],input_d_shape[1],input_d_shape[3],n_files))
+    input_sum = np.zeros(input_d_shape)
     for count, file in enumerate(input_filenames):
         input = nib.load(file)
         input_d = input.get_data()
