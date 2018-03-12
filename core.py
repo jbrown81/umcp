@@ -597,7 +597,7 @@ def nifti_4d_std(input_filenames,output_filename):
     input_avg = input_sum / count
     
     input_std_sum = np.zeros((input_d_shape))
-    for count,file in enumerate(files):
+    for count, file in enumerate(input_filenames):
         input = nib.load(file)
         input_d = input.get_data()
         input_std_sum = input_std_sum + ((input_d - input_avg) * (input_d - input_avg))
