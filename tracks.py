@@ -58,7 +58,11 @@ def get_floats(track_file):
                 #track_properties.append(struct.unpack('f',contents[property_start:property_end])[0])
                 property_start = property_end + 4
         
-        floats = zip(*[iter(floats)] * 3)
+        #floats = 
+        new_floats = []
+        for i in list(range(0,len(floats),3)):
+            new_floats.append((floats[i],floats[i+1],floats[i+2]))
+        floats = new_floats
         current = end + (4 * n_p)
         end = current + 4
         if len(floats) > 0:

@@ -126,7 +126,8 @@ def file_reader(infile,text=False):
     else:
         for line in fin:
             pos = line.rstrip().split()
-            values.append(map(float, pos))
+            values.append(list(map(float, pos)))
+            #values.append(float(pos))
     fin.close()
     return values
 
