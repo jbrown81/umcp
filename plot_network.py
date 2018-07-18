@@ -664,19 +664,22 @@ def plot_matrix_2d(connectmat_file,centers_file,names_file=None,grp_metrics=None
     
 def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
                 threshold_pct=2,binarize=False,weight_edges=False,names_file=None,pos=None,prog=None,
-                out_filename=None,colorscheme=None,node_size=300,cmap=None,edge_colors=None,line_widths=None):
+                out_filename=None,colorscheme=None,node_size=300,cmap=None,edge_colors=None,line_widths=None,
+                highlight_nodes=None,figsize=None):
     """
     Given connectivity matrix,
     a community index file (integer on each line specifying which module that node belongs to),
     and python list of strings specifying color for each node,
     use networkx and matplotlib to generate 2d spring-embedded plot
     """
+    if not figsize:
+        figsize = (9,7)
     if colorscheme == 'black':    
-        plt.figure(figsize=(9,7),facecolor='black',edgecolor='white')
+        plt.figure(figsize=figsize,facecolor='black',edgecolor='white')
         edge_color = 'w'
         font_color = 'w'
     else:
-        plt.figure(figsize=(9,7),facecolor='white',edgecolor='black')
+        plt.figure(figsize=figsize,facecolor='white',edgecolor='black')
         edge_color = 'k'
         font_color = 'k'
     alpha = .02
@@ -730,6 +733,11 @@ def plot_spring(connectmat_file,comm_index_file,node_indiv_colors,
             #nodes = nx.draw_networkx_nodes(G, pos, [n], node_size = node_size, node_color = node_indiv_colors[count], linewidths=line_widths[n], cmap=cmap)
             #nodes.set_edgecolor(edge_colors[n])
         else:
+            nodes = nx.draw_networkx_nodes(G, pos, [n], node_size = node_size, node_color = node_indiv_colors[n], linewidths=line_widths[n])
+            nodes.set_edgecolor(edge_colors[n])
+    
+    if highlight_nodes:
+        for n in highlight_nodes:
             nodes = nx.draw_networkx_nodes(G, pos, [n], node_size = node_size, node_color = node_indiv_colors[n], linewidths=line_widths[n])
             nodes.set_edgecolor(edge_colors[n])
     
